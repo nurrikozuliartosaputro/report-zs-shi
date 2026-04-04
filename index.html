@@ -477,7 +477,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // ALGORITMA BANTUAN CLOUD (Menghemat Biaya & Mencegah Limit Data)
+        // ALGORITMA BANTUAN CLOUD (Menghemat Biaya & Mencegah Limit Data 10MB)
         async function saveDocStr(docId, dataArray) {
             await db.collection('appSettings').doc(docId).set({ data: JSON.stringify(dataArray) });
         }
@@ -490,21 +490,29 @@
             return defaultVal;
         }
 
+        // PERBAIKAN: Mengirim data secara satuan agar tidak terkena limit Payload Size 10MB
         async function saveLargeArray(docPrefix, array) {
             const jsonStr = JSON.stringify(array);
-            const chunkSize = 800000; // Pecah jadi 800KB per file untuk kelancaran Firebase
+            const chunkSize = 500000; // Pecah jadi 500KB per file untuk keamanan Firebase
             let chunks = [];
             for (let i = 0; i < jsonStr.length; i += chunkSize) {
                 chunks.push(jsonStr.substring(i, i + chunkSize));
             }
+            
+            // Hapus data lama
             const oldDocs = await db.collection('appData').where('type', '==', docPrefix).get();
-            const batch = db.batch();
-            oldDocs.forEach(doc => batch.delete(doc.ref));
-            chunks.forEach((chunk, idx) => {
-                const docRef = db.collection('appData').doc(`${docPrefix}_${idx}`);
-                batch.set(docRef, { type: docPrefix, index: idx, data: chunk });
-            });
-            await batch.commit();
+            const deleteBatch = db.batch();
+            oldDocs.forEach(doc => deleteBatch.delete(doc.ref));
+            await deleteBatch.commit(); 
+
+            // Simpan data baru satu per satu (dicicil) agar tidak menabrak limit
+            for(let i = 0; i < chunks.length; i++) {
+                await db.collection('appData').doc(`${docPrefix}_${i}`).set({ 
+                    type: docPrefix, 
+                    index: i, 
+                    data: chunks[i] 
+                });
+            }
         }
 
         async function loadLargeArray(docPrefix) {
@@ -869,8 +877,9 @@
             XLSX.utils.book_append_sheet(wb, wsSales, "Data Sales"); XLSX.utils.book_append_sheet(wb, wsTarget, "Data Target"); XLSX.writeFile(wb, "Template_Sales_Target_Lengkap.xlsx");
         }
 
-        document.getElementById('excelInput').addEventListener('change', function(e) {
-            const file = e.target.files[0]; if(!file) return;
+        // PERBAIKAN: Fungsi Handle Excel Upload sudah di-rebuild
+        function handleExcelUpload(input) {
+            const file = input.files[0]; if(!file) return;
             const loader = document.getElementById('globalLoading'); document.getElementById('loadingText').innerText = "Menyinkronkan ke Cloud Firebase..."; loader.classList.remove('hidden');
 
             setTimeout(() => {
@@ -993,7 +1002,7 @@
                         });
 
                         try {
-                            // SIMPAN SEMUA KE CLOUD
+                            // SIMPAN SEMUA KE CLOUD DENGAN SISTEM CICILAN BARU
                             await saveLargeArray('sales', rawSalesData);
                             await saveLargeArray('targets', rawTargetData);
                             
@@ -1005,7 +1014,7 @@
                 }; 
                 reader.readAsArrayBuffer(file);
             }, 100);
-        });
+        }
 
         async function resetSalesData() {
             if(confirm('Hapus seluruh database Sales dan Target secara permanen DARI CLOUD?')) {
@@ -1085,7 +1094,7 @@
             if (cYear !== 'ALL' && cMonth !== 'ALL') {
                 const lastYear = (parseInt(cYear) - 1).toString();
                 let prevYearData = workingSalesData.filter(r => getYear(r.Tanggal) === lastYear && getMonthName(r.Tanggal) === cMonth && (cBrand === 'ALL' || r.Brand === cBrand) && (cSource === 'ALL' || r.Source === cSource));
-                calculateGrowthUI(filtered.reduce((sum, r) => sum + (parseInt(r['Qty Terjual']) || 0), 0), prevYearData.reduce((sum, r) => sum + (parseInt(r['Qty Terjual']) || 0), 0), 'qtyGrowth', lastYear);
+                calculateGrowthUI(filtered.reduce((sum, r) => sum + (parseInt(r['Qty Terjual']) || 0), 0), prevYearData.reduce((sum, r) => sum + (parseFloat(r.Revenue) || 0), 0), 'qtyGrowth', lastYear);
                 calculateGrowthUI(filtered.reduce((sum, r) => sum + (parseFloat(r.Revenue) || 0), 0), prevYearData.reduce((sum, r) => sum + (parseFloat(r.Revenue) || 0), 0), 'revGrowth', lastYear);
                 document.getElementById('growthSection').classList.remove('hidden');
             } else { document.getElementById('growthSection').classList.add('hidden'); }
