@@ -1295,14 +1295,37 @@
             );
             currentSalesFilteredData = filtered;
 
-            // Growth calculation only makes sense if single year & single month selected
-            if (cYear.length === 1 && cYear[0] !== 'ALL' && cMonth.length === 1 && cMonth[0] !== 'ALL') {
+            let showGrowth = false;
+            let prevYearData = [];
+            let prevLabel = "";
+
+            if (cYear.length === 1 && cYear[0] !== 'ALL') {
                 const lastYear = (parseInt(cYear[0]) - 1).toString();
-                let prevYearData = workingSalesData.filter(r => getYear(r.Tanggal) === lastYear && getMonthName(r.Tanggal) === cMonth[0] && (cBrand === 'ALL' || r.Brand === cBrand) && (cSource === 'ALL' || r.Source === cSource));
-                calculateGrowthUI(filtered.reduce((sum, r) => sum + (parseInt(r['Qty Terjual']) || 0), 0), prevYearData.reduce((sum, r) => sum + (parseInt(r['Qty Terjual']) || 0), 0), 'qtyGrowth', `${cMonth[0]} ${lastYear}`);
-                calculateGrowthUI(filtered.reduce((sum, r) => sum + (parseFloat(r.Revenue) || 0), 0), prevYearData.reduce((sum, r) => sum + (parseFloat(r.Revenue) || 0), 0), 'revGrowth', `${cMonth[0]} ${lastYear}`);
+                prevYearData = workingSalesData.filter(r => 
+                    getYear(r.Tanggal) === lastYear && 
+                    (cBrand === 'ALL' || r.Brand === cBrand) && 
+                    (cCollection.includes('ALL') || cCollection.includes(r.Koleksi)) && 
+                    (cSource === 'ALL' || r.Source === cSource) && 
+                    (cBazaar === 'ALL' || r['Sales Tag'] === cBazaar) && 
+                    (cMonth.includes('ALL') || cMonth.includes(getMonthName(r.Tanggal)))
+                );
+                
+                if (cMonth.includes('ALL')) {
+                    prevLabel = `Tahun ${lastYear}`; showGrowth = true;
+                } else if (cMonth.length === 1) {
+                    prevLabel = `${cMonth[0]} ${lastYear}`; showGrowth = true;
+                } else if (cMonth.length > 1) {
+                    prevLabel = `Periode Sama ${lastYear}`; showGrowth = true;
+                }
+            }
+
+            if (showGrowth) {
+                calculateGrowthUI(filtered.reduce((sum, r) => sum + (parseInt(r['Qty Terjual']) || 0), 0), prevYearData.reduce((sum, r) => sum + (parseInt(r['Qty Terjual']) || 0), 0), 'qtyGrowth', prevLabel);
+                calculateGrowthUI(filtered.reduce((sum, r) => sum + (parseFloat(r.Revenue) || 0), 0), prevYearData.reduce((sum, r) => sum + (parseFloat(r.Revenue) || 0), 0), 'revGrowth', prevLabel);
                 document.getElementById('growthSection').classList.remove('hidden');
-            } else { document.getElementById('growthSection').classList.add('hidden'); }
+            } else {
+                document.getElementById('growthSection').classList.add('hidden');
+            }
 
             let filteredTarget = workingTargetData.filter(t => 
                 (cBrand === 'ALL' || String(t.Brand||'').trim().toUpperCase() === String(cBrand).trim().toUpperCase()) && 
