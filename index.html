@@ -54,7 +54,6 @@
         .sidebar-collapsed .gap-4 { gap: 0 !important; }
         .sidebar-collapsed .w-12 { width: 2.5rem; height: 2.5rem; font-size: 1rem; }
 
-        /* KEYFRAMES & ANIMATION CLASSES UNTUK INVENTORY */
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes modalEnter { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -208,6 +207,11 @@
                             <span class="text-xs font-bold text-slate-700">Templates</span>
                         </button>
         
+                        <button onclick="openTargetModal()" class="btn-modern group bg-white/80 backdrop-blur-sm border border-slate-200 px-4 py-3 rounded-2xl shadow-sm hover:shadow-md hover:border-emerald-300 flex items-center gap-2">
+                            <i class="fas fa-bullseye text-emerald-600 text-lg"></i>
+                            <span class="text-xs font-bold text-slate-700">Input Target</span>
+                        </button>
+
                         <input type="file" id="excelInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(this)">
                         <label for="excelInput" class="btn-modern shine-effect cursor-pointer bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-3 rounded-2xl shadow-lg hover:shadow-indigo-300 flex items-center gap-3 text-white">
                             <i class="fas fa-file-excel text-white text-xl"></i>
@@ -462,6 +466,98 @@
             </div>
 
         </main>
+    </div>
+
+    <div id="inputTargetModal" class="hidden fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col modal-animate">
+            <div class="p-5 md:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-3xl">
+                <h2 class="text-lg md:text-xl font-black text-slate-800 tracking-wide flex items-center gap-2">
+                    <i class="fas fa-bullseye text-emerald-500"></i> Input Target Manual
+                </h2>
+                <button onclick="closeTargetModal()" class="p-2 bg-white rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition-colors shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div class="p-5 md:p-6 overflow-y-auto flex-1">
+                <form id="manualTargetForm" onsubmit="submitManualTarget(event)" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Brand</label>
+                            <select id="targetBrand" class="custom-select w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                                <option value="" disabled selected>Pilih Brand...</option>
+                                <option value="ZS">ZS</option>
+                                <option value="SHI">SHI</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Tahun</label>
+                            <input type="number" id="targetTahun" class="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Contoh: 2025" required min="2000" max="2100">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Bulan</label>
+                            <select id="targetBulan" class="custom-select w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                                <option value="" disabled selected>Pilih Bulan...</option>
+                                <option value="Januari">Januari</option>
+                                <option value="Februari">Februari</option>
+                                <option value="Maret">Maret</option>
+                                <option value="April">April</option>
+                                <option value="Mei">Mei</option>
+                                <option value="Juni">Juni</option>
+                                <option value="Juli">Juli</option>
+                                <option value="Agustus">Agustus</option>
+                                <option value="September">September</option>
+                                <option value="Oktober">Oktober</option>
+                                <option value="November">November</option>
+                                <option value="Desember">Desember</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Source</label>
+                            <select id="targetSource" onchange="toggleTargetDynamicFields()" class="custom-select w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                                <option value="" disabled selected>Pilih Source...</option>
+                                <option value="Mitra & Reseller">Mitra & Reseller</option>
+                                <option value="Butik">Butik</option>
+                                <option value="Ecommerce">Ecommerce</option>
+                                <option value="WA">WA</option>
+                                <option value="Bazaar">Bazaar</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="targetEcommerceArea" class="hidden bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                        <label class="block text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-1 ml-1">Platform Ecommerce (Opsional)</label>
+                        <select id="targetPlatform" class="custom-select w-full bg-white border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="">Semua Platform / Umum</option>
+                            <option value="Shopee">Shopee</option>
+                            <option value="Tiktok">Tiktok</option>
+                            <option value="Web">Web</option>
+                        </select>
+                    </div>
+
+                    <div id="targetBazaarArea" class="hidden bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <label class="block text-[10px] font-bold text-emerald-600 uppercase tracking-widest ml-1">Bazaar Spesifik (Opsional)</label>
+                            <button type="button" onclick="addBazaarTargetRow()" class="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm transition-all"><i class="fas fa-plus mr-1"></i> Add Bazaar</button>
+                        </div>
+                        <div id="bazaarRowsContainer" class="space-y-3"></div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Target Umum (Rp)</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Rp</span>
+                            <input type="text" id="targetAmount" oninput="formatRupiahInput(this)" class="w-full bg-slate-50 border border-slate-200 py-3 pl-10 pr-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Masukkan Target..." required>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1 ml-1 italic">*Jika Source adalah Bazaar dan Anda telah menambahkan Bazaar spesifik di atas, target umum ini akan tetap disimpan sebagai target tambahan jika diisi.</p>
+                    </div>
+
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition-all active:scale-95 mt-4 flex justify-center items-center gap-2">
+                        <i class="fas fa-save"></i> Simpan Target
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <div id="salesDetailModal" class="hidden fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
@@ -1167,11 +1263,15 @@
             workingSalesData = sysActiveYearFilter.includes('ALL') ? rawSalesData : rawSalesData.filter(r => sysActiveYearFilter.includes(getYear(r.Tanggal)));
             workingTargetData = sysActiveYearFilter.includes('ALL') ? rawTargetData : rawTargetData.filter(t => sysActiveYearFilter.includes(String(t.Tahun).trim()));
 
-            if(workingSalesData.length > 0) {
+            if(workingSalesData.length > 0 || rawTargetData.length > 0) {
                 document.getElementById('fileStatus').classList.remove('hidden');
                 document.getElementById('salesStatus').innerHTML = `Database Sales: <span class="text-emerald-500 font-extrabold">✅ ${workingSalesData.length.toLocaleString('id-ID')} baris</span>`;
                 document.getElementById('targetStatus').innerHTML = `Database Target: <span class="text-emerald-500 font-extrabold">${workingTargetData.length > 0 ? '✅ '+workingTargetData.length.toLocaleString('id-ID')+' baris' : '❌ Kosong'}</span>`;
-                document.getElementById('filterArea').classList.remove('hidden'); document.getElementById('targetSection').classList.remove('hidden'); document.getElementById('chartsArea').style.display = 'grid';
+                if(workingSalesData.length > 0) {
+                    document.getElementById('filterArea').classList.remove('hidden'); 
+                    document.getElementById('targetSection').classList.remove('hidden'); 
+                    document.getElementById('chartsArea').style.display = 'grid';
+                }
                 
                 // Reset states
                 cBrand = 'ALL'; cSource = 'ALL'; cBazaar = 'ALL'; 
@@ -1462,6 +1562,141 @@
             
             if(dataArr.length === 0) { tbody.innerHTML = `<tr><td colspan=\"3\" class=\"px-6 py-10 text-center text-slate-400 font-medium italic\">Tidak ada data untuk ditampilkan</td></tr>`; } else {
                 tbody.innerHTML = dataArr.map((item, index) => `<tr class=\"hover:bg-indigo-50/40 transition-colors group cursor-default\"><td class=\"px-6 py-4\"><div class=\"flex items-center gap-3\"><span class=\"w-6 h-6 rounded-full ${index < 3 ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'} flex items-center justify-center text-[10px] font-extrabold group-hover:scale-110 transition-transform\">${index + 1}</span><span class=\"font-extrabold text-slate-700 text-xs\">${item.name}</span></div></td><td class=\"px-6 py-4 text-right font-black text-slate-600\">${item.q.toLocaleString('id-ID')} <span class=\"text-[10px] font-normal text-slate-400\">pcs</span></td><td class=\"px-6 py-4 text-right font-black text-emerald-600 group-hover:text-emerald-500 transition-colors\">${formatRupiah(item.r)}</td></tr>`).join('');
+            }
+        }
+
+        // ==========================================
+        // INPUT TARGET MANUAL LOGIC
+        // ==========================================
+        function openTargetModal() {
+            document.getElementById('manualTargetForm').reset();
+            document.getElementById('targetEcommerceArea').classList.add('hidden');
+            document.getElementById('targetBazaarArea').classList.add('hidden');
+            document.getElementById('bazaarRowsContainer').innerHTML = '';
+            
+            const currentYear = new Date().getFullYear();
+            document.getElementById('targetTahun').value = currentYear;
+            
+            document.getElementById('inputTargetModal').classList.remove('hidden');
+        }
+
+        function closeTargetModal() {
+            document.getElementById('inputTargetModal').classList.add('hidden');
+        }
+
+        function toggleTargetDynamicFields() {
+            const source = document.getElementById('targetSource').value;
+            document.getElementById('targetEcommerceArea').classList.add('hidden');
+            document.getElementById('targetBazaarArea').classList.add('hidden');
+            
+            if (source === 'Ecommerce') {
+                document.getElementById('targetEcommerceArea').classList.remove('hidden');
+            } else if (source === 'Bazaar') {
+                document.getElementById('targetBazaarArea').classList.remove('hidden');
+            }
+        }
+
+        function formatRupiahInput(input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            if (value) {
+                input.value = new Intl.NumberFormat('id-ID').format(value);
+            } else {
+                input.value = '';
+            }
+        }
+
+        function addBazaarTargetRow() {
+            const container = document.getElementById('bazaarRowsContainer');
+            const rowId = 'bzRow_' + Date.now();
+            const html = `
+                <div id="${rowId}" class="flex flex-col sm:flex-row gap-2 items-center bg-white p-3 rounded-lg border border-slate-200">
+                    <input type="text" placeholder="Nama Bazaar" class="bz-name w-full sm:w-1/3 bg-slate-50 border border-slate-200 py-2 px-3 rounded-lg text-xs font-bold outline-none" required>
+                    <input type="text" placeholder="Periode (Cth: 1-10 Jan)" class="bz-period w-full sm:w-1/3 bg-slate-50 border border-slate-200 py-2 px-3 rounded-lg text-xs font-bold outline-none" required>
+                    <div class="relative w-full sm:w-1/3">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Rp</span>
+                        <input type="text" oninput="formatRupiahInput(this)" placeholder="Target" class="bz-target w-full bg-slate-50 border border-slate-200 py-2 pl-8 pr-3 rounded-lg text-xs font-bold outline-none" required>
+                    </div>
+                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        }
+
+        async function submitManualTarget(e) {
+            e.preventDefault();
+            
+            const brand = document.getElementById('targetBrand').value;
+            const tahun = document.getElementById('targetTahun').value;
+            const bulan = document.getElementById('targetBulan').value;
+            const source = document.getElementById('targetSource').value;
+            const genTargetRaw = document.getElementById('targetAmount').value.replace(/[^0-9]/g, '');
+            const genTarget = parseFloat(genTargetRaw) || 0;
+
+            const newTargets = [];
+
+            if (genTarget > 0) {
+                const targetObj = { Brand: brand, Tahun: tahun, Bulan: bulan, Source: source, Target: genTarget };
+                if (source === 'Ecommerce') {
+                    const platform = document.getElementById('targetPlatform').value;
+                    if (platform) targetObj['Sales Tag'] = platform;
+                }
+                newTargets.push(targetObj);
+            }
+
+            if (source === 'Bazaar') {
+                const bzRows = document.querySelectorAll('#bazaarRowsContainer > div');
+                bzRows.forEach(row => {
+                    const bzName = row.querySelector('.bz-name').value;
+                    const bzPeriod = row.querySelector('.bz-period').value;
+                    const bzTargetRaw = row.querySelector('.bz-target').value.replace(/[^0-9]/g, '');
+                    const bzTarget = parseFloat(bzTargetRaw) || 0;
+                    
+                    if (bzName && bzTarget > 0) {
+                        newTargets.push({
+                            Brand: brand, Tahun: tahun, Bulan: bulan, Source: 'Bazaar', Target: bzTarget,
+                            'Sales Tag': bzName, Periode: bzPeriod
+                        });
+                    }
+                });
+            }
+
+            if (newTargets.length === 0) {
+                alert("Harap masukkan nominal target yang valid.");
+                return;
+            }
+
+            const loader = document.getElementById('globalLoading');
+            document.getElementById('loadingText').innerText = "Menyimpan Target Manual ke Cloud...";
+            loader.classList.remove('hidden');
+
+            try {
+                const targetMap = new Map();
+                rawTargetData.forEach((t, idx) => {
+                    const key = `${t.Brand}|${String(t.Tahun).trim()}|${String(t.Bulan).trim().toUpperCase()}|${t.Source}|${t['Sales Tag'] || ''}`;
+                    targetMap.set(key, idx);
+                });
+
+                newTargets.forEach(nt => {
+                    const key = `${nt.Brand}|${String(nt.Tahun).trim()}|${String(nt.Bulan).trim().toUpperCase()}|${nt.Source}|${nt['Sales Tag'] || ''}`;
+                    if (targetMap.has(key)) {
+                        rawTargetData[targetMap.get(key)].Target = nt.Target;
+                    } else {
+                        rawTargetData.push(nt);
+                        targetMap.set(key, rawTargetData.length - 1);
+                    }
+                });
+
+                await saveLargeArray('targets', rawTargetData);
+                alert("Target manual berhasil disimpan ke dalam Cloud!");
+                
+                populateSettingsDropdowns();
+                initSalesUI();
+                closeTargetModal();
+            } catch (err) {
+                console.error(err);
+                alert("Gagal menyimpan target ke Cloud!");
+            } finally {
+                loader.classList.add('hidden');
             }
         }
 
