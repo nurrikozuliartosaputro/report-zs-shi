@@ -167,6 +167,9 @@
                 <button onclick="switchTab('launching')" id="nav-launching" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-500 rounded-xl hover:bg-slate-50 transition-all" title="Jadwal Launching">
                     <i class="fas fa-rocket w-5 text-center"></i> <span class="hide-on-collapse whitespace-nowrap">Jadwal Launching</span>
                 </button>
+                <button onclick="switchTab('movement')" id="nav-movement" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-500 rounded-xl hover:bg-slate-50 transition-all" title="Pergerakan Barang">
+                    <i class="fas fa-route w-5 text-center"></i> <span class="hide-on-collapse whitespace-nowrap">Pergerakan Barang</span>
+                </button>
                 
                 <div id="adminMenuSection" class="hidden">
                     <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-2 mt-6 hide-on-collapse">Sistem</p>
@@ -484,6 +487,39 @@
                                 </tr>
                             </thead>
                             <tbody id="launchingTableBody" class="text-xs divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="app-movement" class="hidden p-4 md:p-10 w-full max-w-7xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white/80 backdrop-blur-sm p-6 rounded-3xl border border-slate-200 shadow-sm animate-enter">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-lg shadow-indigo-500/30"><i class="fas fa-route text-xl"></i></div>
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800 tracking-tight">Pergerakan <span class="text-indigo-600">Barang</span></h1>
+                            <p class="text-xs text-slate-500 font-medium">Analisis Performa Produk sejak Launching (Fast/Slow Selling)</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="searchMovement" onkeyup="renderMovementApp()" placeholder="Cari Nama Baju..." class="pl-4 pr-10 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-enter delay-100">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left whitespace-nowrap min-w-[800px]">
+                            <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black border-b tracking-widest">
+                                <tr>
+                                    <th class="p-4 text-center">Produk Launching</th>
+                                    <th class="p-4 text-center">Tgl Launching / Rilis</th>
+                                    <th class="p-4 text-right bg-emerald-50/50 text-emerald-600">Terjual (Sales)</th>
+                                    <th class="p-4 text-right bg-amber-50/50 text-amber-600">Sisa (Gudang)</th>
+                                    <th class="p-4 text-center bg-indigo-50/50 text-indigo-600">Sell-Through Rate</th>
+                                    <th class="p-4 text-center">Status Performa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="movementTableBody" class="text-xs divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
                 </div>
@@ -1015,7 +1051,7 @@
 
         // MENGATUR PINDAH TAB MENU
         function switchTab(tab) {
-            ['sales', 'inventory', 'launching', 'users', 'settings'].forEach(t => {
+            ['sales', 'inventory', 'launching', 'movement', 'users', 'settings'].forEach(t => {
                 const app = document.getElementById('app-' + t), nav = document.getElementById('nav-' + t);
                 if(app) app.classList.add('hidden');
                 if(nav) { nav.classList.remove('bg-indigo-50', 'text-indigo-600'); nav.classList.add('text-slate-500'); }
@@ -1029,6 +1065,7 @@
             if(tab === 'settings') { populateSettingsDropdowns(); }
             if(tab === 'sales') { if(rawSalesData.length > 0) { initSalesUI(); } }
             if(tab === 'launching') { initLaunchingApp(); }
+            if(tab === 'movement') { renderMovementApp(); }
         }
 
         function togglePassword(inputId, iconElement) {
@@ -1120,7 +1157,7 @@
         // MENGATUR TAMPILAN PROFIL BERDASARKAN ROLE & DIVISI
         function setupDashboardForUser() {
             const isAdm = currentUser.role === 'admin';
-            const displayName = isAdm ? 'Riko' : currentUser.username; // Displaying actual Name from User Profile if admin
+            const displayName = isAdm ? 'Riko' : currentUser.username;
             document.getElementById('profileName').innerText = displayName;
             document.getElementById('profileRole').innerText = isAdm ? 'Administrator' : 'User Standard';
             document.getElementById('profileIcon').innerText = displayName.charAt(0).toUpperCase();
@@ -2276,6 +2313,9 @@
                 launchingData = [];
                 snapshot.forEach(doc => launchingData.push(doc.data()));
                 renderBajuLaunching();
+                if(!document.getElementById('app-movement').classList.contains('hidden')) {
+                    renderMovementApp();
+                }
             });
         }
 
@@ -2298,9 +2338,34 @@
         }
 
         function setTanggalLaunching(id, jenis) {
-            const tgl = document.getElementById(`input-${jenis}-${id}`).value;
-            if(!tgl) return alert("Pilih tanggal!");
-            db.collection('launching_clothes').doc(id).update({ [jenis]: tgl });
+            const inputElem = document.getElementById(`input-${jenis}-${id}`);
+            const tgl = inputElem.value;
+            
+            if(!tgl) return alert("Silakan pilih tanggal terlebih dahulu!");
+            
+            const item = launchingData.find(x => x.id === id);
+            if (!item) return alert("Data tidak ditemukan!");
+
+            let payload = { 
+                [jenis]: tgl, 
+                [`${jenis}_by`]: currentUser.username, 
+                [`${jenis}_updated_at`]: Date.now() 
+            };
+            
+            if (item[jenis] && item[jenis] !== tgl) {
+                let history = item[`${jenis}_history`] || [];
+                history.push({
+                    old_date: item[jenis],
+                    new_date: tgl,
+                    by: currentUser.username,
+                    at: Date.now()
+                });
+                payload[`${jenis}_history`] = history;
+            }
+            
+            db.collection('launching_clothes').doc(id).update(payload)
+                .then(() => alert('Tanggal berhasil disimpan/diupdate!'))
+                .catch(e => alert('Gagal menyimpan data: ' + e.message));
         }
 
         function renderBajuLaunching() {
@@ -2311,27 +2376,61 @@
             
             if(filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-slate-400 font-medium italic">Tidak ada jadwal ditemukan...</td></tr>`; return; }
 
-            tbody.innerHTML = filtered.map(c => {
-                let uiL = c.launching ? `<b class="text-slate-700 text-sm">${c.launching}</b>` : `<span class="text-rose-500 font-bold uppercase text-[9px]">Belum Diset</span>`;
-                if(!c.launching && (currentUser.divisi === 'Sales' || currentUser.role === 'admin')) {
-                    uiL = `<div class="flex flex-col gap-1 items-center"><input type="date" id="input-launching-${c.id}" class="text-[10px] border rounded p-1"><button onclick="setTanggalLaunching('${c.id}', 'launching')" class="bg-indigo-600 text-white text-[9px] px-2 py-1 rounded">Update</button></div>`;
-                }
+            const renderDateField = (c, jenis) => {
+                const val = c[jenis];
+                const by = c[`${jenis}_by`];
+                const history = c[`${jenis}_history`];
+                const hasAccess = (jenis === 'launching' && (currentUser.divisi === 'Sales' || currentUser.role === 'admin')) || 
+                                  (jenis === 'kirim' && (currentUser.divisi === 'Gudang' || currentUser.role === 'admin'));
+                
+                if(!val) {
+                    if(hasAccess) {
+                        return `<div class="flex flex-col gap-1.5 items-center"><input type="date" id="input-${jenis}-${c.id}" class="text-[10px] border border-slate-200 rounded-md p-1.5 outline-none focus:border-indigo-500 w-24 bg-white"><button onclick="setTanggalLaunching('${c.id}', '${jenis}')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] px-3 py-1.5 rounded shadow-sm w-full font-bold transition-all"><i class="fas fa-save mr-1"></i>Simpan</button></div>`;
+                    }
+                    return `<span class="text-rose-400 font-bold uppercase text-[9px] bg-rose-50 border border-rose-100 px-2 py-1 rounded">Belum Diset</span>`;
+                } else {
+                    let infoHtml = `<div class="font-bold text-slate-700 text-sm flex justify-center items-center gap-1">${val}`;
+                    
+                    if(history && history.length > 0) {
+                        let tooltipText = 'Riwayat Perubahan:&#10;';
+                        history.forEach(h => {
+                            const dateStr = new Date(h.at).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+                            tooltipText += `- ${dateStr} | Diubah dari [${h.old_date}] ke [${h.new_date}] oleh [${h.by}]&#10;`;
+                        });
+                        infoHtml += `<i class="fas fa-history text-amber-500 cursor-help text-[10px]" title="${tooltipText}"></i>`;
+                    }
+                    infoHtml += `</div>`;
+                    
+                    if(by) infoHtml += `<div class="text-[8.5px] text-slate-400 uppercase font-bold mt-0.5 tracking-wider">By: ${by}</div>`;
 
-                let uiK = c.kirim ? `<b class="text-slate-700 text-sm">${c.kirim}</b>` : `<span class="text-rose-500 font-bold uppercase text-[9px]">Belum Diset</span>`;
-                if(!c.kirim && (currentUser.divisi === 'Gudang' || currentUser.role === 'admin')) {
-                    uiK = `<div class="flex flex-col gap-1 items-center"><input type="date" id="input-kirim-${c.id}" class="text-[10px] border rounded p-1"><button onclick="setTanggalLaunching('${c.id}', 'kirim')" class="bg-emerald-600 text-white text-[9px] px-2 py-1 rounded">Update</button></div>`;
+                    let editHtml = '';
+                    if(hasAccess) {
+                        editHtml = `<div class="mt-2 flex gap-1 justify-center items-center pt-2 border-t border-slate-100">
+                            <input type="date" id="input-${jenis}-${c.id}" value="${val}" class="text-[9px] border border-slate-200 rounded p-1 w-20 bg-slate-50">
+                            <button onclick="setTanggalLaunching('${c.id}', '${jenis}')" class="bg-amber-500 hover:bg-amber-600 text-white text-[9px] px-2 py-1 rounded shadow-sm font-bold"><i class="fas fa-edit"></i></button>
+                        </div>`;
+                    }
+
+                    return `<div class="flex flex-col items-center">${infoHtml} ${editHtml}</div>`;
                 }
+            };
+
+            const canDelete = currentUser.role === 'admin' || currentUser.divisi === 'Sales';
+
+            tbody.innerHTML = filtered.map(c => {
+                let uiL = renderDateField(c, 'launching');
+                let uiK = renderDateField(c, 'kirim');
 
                 return `
                     <tr class="hover:bg-indigo-50/30 transition-colors">
                         <td class="p-3 text-center"><img src="${c.foto}" onclick="document.getElementById('zoomImageSrc').src=this.src; document.getElementById('zoomModal').classList.remove('hidden')" class="w-12 h-12 object-cover rounded-xl shadow-sm cursor-zoom-in hover:scale-110 transition-transform"></td>
                         <td class="p-3"><span class="bg-slate-800 text-white px-2 py-1 rounded text-[9px] font-black">${c.brand}</span></td>
-                        <td class="p-3"><div class="font-bold text-slate-700">${c.nama}</div><div class="text-[10px] text-slate-400 uppercase font-bold tracking-tight">${c.koleksi}</div></td>
+                        <td class="p-3"><div class="font-bold text-slate-700">${c.nama}</div><div class="text-[10px] text-slate-400 uppercase font-bold tracking-tight mt-0.5">${c.koleksi}</div></td>
                         <td class="p-3 text-[10px] text-slate-500">Var: <b>${c.variant}</b><br>Size: <b>${c.size}</b></td>
                         <td class="p-3 text-center align-middle">${uiL}</td>
                         <td class="p-3 text-center align-middle">${uiK}</td>
                         <td class="p-3 text-center">
-                            ${currentUser.role === 'admin' ? `<button onclick="db.collection('launching_clothes').doc('${c.id}').delete()" class="text-rose-400 hover:text-rose-600 transition-colors"><i class="fas fa-trash-alt"></i></button>` : '-'}
+                            ${canDelete ? `<button onclick="if(confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) db.collection('launching_clothes').doc('${c.id}').delete()" class="text-rose-400 hover:text-rose-600 transition-colors bg-rose-50 hover:bg-rose-100 p-2 rounded-lg" title="Hapus Baju dari Jadwal"><i class="fas fa-trash-alt"></i></button>` : '-'}
                         </td>
                     </tr>
                 `;
@@ -2343,6 +2442,126 @@
             let csv = "Brand,Nama Baju,Koleksi,Variant,Size,Tgl Launching,Estimasi Kirim\n";
             launchingData.forEach(c => csv += `"${c.brand}","${c.nama}","${c.koleksi}","${c.variant}","${c.size}","${c.launching || '-'}","${c.kirim || '-'}"\n`);
             downloadCSV(csv, 'Laporan_Jadwal_Launching_ZSSHI');
+        }
+
+        // ==========================================
+        // FITUR PERGERAKAN BARANG (FUZZY MATCHING)
+        // ==========================================
+        function simplifyName(name) {
+            if (!name) return "";
+            // Hapus karakter non-alfanumerik, ubah ke lowercase, ambil unsur utamanya saja
+            return String(name).toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+        }
+
+        function renderMovementApp() {
+            const tbody = document.getElementById('movementTableBody');
+            const search = document.getElementById('searchMovement').value.toLowerCase();
+            
+            if (launchingData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-slate-400 font-medium italic">Belum ada data di jadwal launching...</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            let filteredLaunch = launchingData.filter(c => (c.nama||'').toLowerCase().includes(search) || (c.koleksi||'').toLowerCase().includes(search));
+
+            filteredLaunch.forEach(launch => {
+                const baseName = simplifyName(launch.nama);
+                if (!baseName) return;
+
+                let totalTerjual = 0; let sisaGudang = 0;
+
+                // 1. Hitung Terjual
+                rawSalesData.forEach(sale => {
+                    const saleName = simplifyName(sale['Nama Baju']);
+                    if (saleName.includes(baseName) && String(sale.Brand).toUpperCase() === String(launch.brand).toUpperCase()) {
+                        totalTerjual += (parseInt(sale['Qty Terjual']) || 0);
+                    }
+                });
+
+                // 2. Hitung Sisa Gudang
+                inventory.forEach(inv => {
+                    const invName = simplifyName(inv.cleanName);
+                    if (invName.includes(baseName) && String(inv.brand).toUpperCase() === String(launch.brand).toUpperCase()) {
+                        sisaGudang += (parseInt(inv.onHand) || 0);
+                    }
+                });
+
+                // 3. Kalkulasi Umur Launching & Velocity (Kecepatan Jual)
+                let daysElapsedText = '<span class="text-[9px] text-slate-400 italic">Belum Diatur</span>';
+                let velocityText = '';
+                
+                if (launch.launching) {
+                    const launchDate = new Date(launch.launching);
+                    const today = new Date();
+                    // Set jam ke 00:00 agar hitungan murni hari
+                    launchDate.setHours(0,0,0,0);
+                    today.setHours(0,0,0,0);
+                    
+                    const diffTime = today - launchDate;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                    
+                    if (diffDays >= 0) {
+                        // Sudah launching
+                        const hariTeks = diffDays === 0 ? 'Baru Hari Ini' : `Berjalan ${diffDays} Hari`;
+                        daysElapsedText = `<span class="text-[9px] font-extrabold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">${hariTeks}</span>`;
+                        
+                        // Hitung Rata-rata laku per hari (hanya jika minimal 1 hari sudah berlalu)
+                        if (diffDays > 0 && totalTerjual > 0) {
+                            const vel = (totalTerjual / diffDays).toFixed(1);
+                            velocityText = `<div class="text-[10px] text-emerald-500 font-bold mt-1.5 tracking-tight tooltip" title="Rata-rata penjualan per hari"><i class="fas fa-tachometer-alt mr-1"></i>${vel} <span class="text-[8px] font-normal">pcs/hari</span></div>`;
+                        }
+                    } else {
+                        // Pre-launching (Masa Depan)
+                        daysElapsedText = `<span class="text-[9px] font-bold text-amber-500 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Rilis ${Math.abs(diffDays)} Hari Lagi</span>`;
+                    }
+                }
+
+                // 4. Kalkulasi STR & Status
+                const totalProduksi = totalTerjual + sisaGudang;
+                let strPercentage = 0;
+                if (totalProduksi > 0) strPercentage = (totalTerjual / totalProduksi) * 100;
+
+                let statusBadge = '';
+                if (totalProduksi === 0) statusBadge = '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-[10px] font-bold uppercase border border-slate-200">Belum Ada Data</span>';
+                else if (strPercentage >= 65) statusBadge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[10px] font-black uppercase border border-emerald-200 shadow-sm"><i class="fas fa-fire mr-1 text-rose-500"></i>Fast Selling</span>';
+                else if (strPercentage <= 30) statusBadge = '<span class="bg-rose-100 text-rose-700 px-2 py-1 rounded-md text-[10px] font-black uppercase border border-rose-200 shadow-sm"><i class="fas fa-snowflake mr-1 text-blue-500"></i>Slow Selling</span>';
+                else statusBadge = '<span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase border border-indigo-200">Normal</span>';
+
+                html += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-4">
+                            <div class="flex items-center gap-3">
+                                <img src="${launch.foto}" class="w-10 h-10 object-cover rounded-lg shadow-sm border border-slate-200">
+                                <div>
+                                    <div class="font-bold text-slate-700 text-xs">${launch.nama}</div>
+                                    <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">${launch.brand} - ${launch.koleksi}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-4 text-center">
+                            <div class="text-xs font-bold text-slate-600 mb-1.5">${launch.launching || '-'}</div>
+                            ${daysElapsedText}
+                        </td>
+                        <td class="p-4 text-right">
+                            <div class="font-black text-emerald-600 text-sm">${totalTerjual.toLocaleString('id-ID')} <span class="text-[9px] font-normal text-emerald-400">pcs</span></div>
+                            ${velocityText}
+                        </td>
+                        <td class="p-4 text-right font-black text-amber-600">${sisaGudang.toLocaleString('id-ID')} <span class="text-[9px] font-normal text-amber-400">pcs</span></td>
+                        <td class="p-4 text-center">
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="font-black text-indigo-600 text-sm">${strPercentage.toFixed(1)}%</span>
+                                <div class="w-full bg-slate-100 rounded-full h-1.5 max-w-[80px]">
+                                    <div class="bg-indigo-500 h-1.5 rounded-full" style="width: ${strPercentage}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-4 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
         }
 
     </script>
