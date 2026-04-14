@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Report ZS & SHI - Sales & Inventory</title>
+    <title>Report ZS & SHI - Sales & Inventory & Launching</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -75,7 +75,6 @@
     </div>
 
     <div id="authScreen" class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-md">
-        
         <div id="loginForm" class="bg-white p-6 md:p-10 rounded-3xl shadow-2xl w-[90%] md:w-full max-w-md border border-slate-100 transition-all duration-300">
             <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-3"><i class="fas fa-chart-line text-3xl"></i></div>
@@ -150,6 +149,10 @@
                 <div class="hide-on-collapse whitespace-nowrap">
                     <p id="profileRole" class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">User</p>
                     <p id="profileName" class="text-sm font-bold text-slate-800">User Name</p>
+                    <div onclick="openProfileModal()" class="cursor-pointer group mt-1 flex items-center gap-1 border border-indigo-200 bg-indigo-50 px-2 py-0.5 rounded-md w-max hover:bg-indigo-600 transition-all">
+                        <i class="fas fa-id-badge text-[9px] text-indigo-500 group-hover:text-white"></i>
+                        <p id="profileDivisiDisplay" class="text-[9px] font-extrabold text-indigo-500 group-hover:text-white uppercase tracking-wider">Set Divisi & Posisi</p>
+                    </div>
                 </div>
             </div>
 
@@ -160,6 +163,9 @@
                 </button>
                 <button onclick="switchTab('inventory')" id="nav-inventory" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-500 rounded-xl hover:bg-slate-50 transition-all" title="Inventory Analytics">
                     <i class="fas fa-boxes w-5 text-center"></i> <span class="hide-on-collapse whitespace-nowrap">Inventory Analytics</span>
+                </button>
+                <button onclick="switchTab('launching')" id="nav-launching" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-500 rounded-xl hover:bg-slate-50 transition-all" title="Jadwal Launching">
+                    <i class="fas fa-rocket w-5 text-center"></i> <span class="hide-on-collapse whitespace-nowrap">Jadwal Launching</span>
                 </button>
                 
                 <div id="adminMenuSection" class="hidden">
@@ -426,6 +432,63 @@
                 </div>
             </div>
 
+            <div id="app-launching" class="hidden p-4 md:p-10 w-full max-w-7xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white/80 backdrop-blur-sm p-6 rounded-3xl border border-slate-200 shadow-sm animate-enter">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-lg shadow-indigo-500/30"><i class="fas fa-rocket text-xl"></i></div>
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800 tracking-tight">Jadwal <span class="text-indigo-600">Launching</span></h1>
+                            <p class="text-xs text-slate-500 font-medium">Monitoring & Rencana Rilis Produk ZS & SHI</p>
+                        </div>
+                    </div>
+                    <button onclick="exportLaunchingToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-md transition-all active:scale-95 flex items-center gap-2">
+                        <i class="fas fa-file-excel"></i> Export Laporan
+                    </button>
+                </div>
+
+                <div id="launching-sales-input" class="hidden bg-white p-6 rounded-2xl border-l-4 border-l-indigo-600 shadow-sm mb-8 animate-enter delay-100">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <i class="fas fa-plus-circle text-indigo-500"></i> Tambah Data Baju Baru
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Brand</label><select id="l-brand" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"><option value="ZS">ZS</option><option value="SHI">SHI</option></select></div>
+                        <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nama Baju</label><input type="text" id="l-nama" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: Dress A"></div>
+                        <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Koleksi</label><input type="text" id="l-koleksi" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: Raya 2026"></div>
+                        <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Variant</label><input type="text" id="l-variant" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Warna"></div>
+                        <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Size</label><input type="text" id="l-size" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="S, M, L, XL"></div>
+                    </div>
+                    <div class="mt-4 flex flex-col md:flex-row items-center gap-4">
+                        <div class="flex-1"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Upload Foto Produk</label><input type="file" id="l-foto" accept="image/*" class="w-full text-xs font-bold text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"></div>
+                        <button onclick="submitBajuLaunching()" class="w-full md:w-auto bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg active:scale-95"><i class="fas fa-save mr-2"></i> Simpan Data Produk</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-enter delay-200">
+                    <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <h2 class="text-sm font-extrabold text-slate-600 uppercase tracking-widest flex items-center gap-2"><i class="fas fa-list text-indigo-500"></i> Daftar Monitoring Launching</h2>
+                        <div class="flex gap-2">
+                            <input type="text" id="searchLaunching" onkeyup="renderBajuLaunching()" placeholder="Cari Baju / Koleksi..." class="pl-4 pr-10 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left whitespace-nowrap min-w-[800px]">
+                            <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black border-b tracking-widest">
+                                <tr>
+                                    <th class="p-4 text-center">Foto</th>
+                                    <th class="p-4">Brand</th>
+                                    <th class="p-4">Nama Produk / Koleksi</th>
+                                    <th class="p-4">Spesifikasi</th>
+                                    <th class="p-4 text-center bg-indigo-50/50">Tgl Launching (Sales)</th>
+                                    <th class="p-4 text-center bg-emerald-50/50">Estimasi Kirim (Gudang)</th>
+                                    <th class="p-4 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="launchingTableBody" class="text-xs divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div id="app-users" class="hidden p-4 md:p-10 w-full max-w-5xl mx-auto">
                 <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mb-6 flex justify-between items-center">
                     <div><h1 class="text-xl font-bold text-slate-800 tracking-tight">Manajemen User</h1><p class="text-xs text-slate-500 font-medium mt-1">Atur akses, reset password, atau hapus pengguna.</p></div>
@@ -633,6 +696,46 @@
                 </table>
             </div>
         </div>
+    </div>
+
+    <div id="profileModal" class="hidden fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 modal-animate">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-black">
+                    <i class="fas fa-user-tag"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-800">Update Identitas</h2>
+                <p class="text-xs text-slate-500 mt-1 font-medium">Lengkapi posisi dan divisi Anda.</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Posisi / Jabatan</label>
+                    <input type="text" id="profPosisi" placeholder="Contoh: Supervisor, Staff, Head" class="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Divisi Kerja</label>
+                    <select id="profDivisi" class="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm appearance-none cursor-pointer">
+                        <option value="">Pilih Divisi...</option>
+                        <option value="Sales">Sales</option>
+                        <option value="Gudang">Gudang</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="HRD">HRD</option>
+                        <option value="Administrator">Administrator</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeProfileModal()" class="flex-1 bg-slate-100 text-slate-500 font-bold py-3 rounded-xl hover:bg-slate-200 transition-all text-sm">Batal</button>
+                <button onclick="saveProfile()" class="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all text-sm">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="zoomModal" class="hidden fixed inset-0 z-[1100] bg-slate-900/90 flex justify-center items-center p-4 cursor-zoom-out" onclick="this.classList.add('hidden')">
+        <img id="zoomImageSrc" class="max-w-full max-h-[90vh] rounded-2xl shadow-2xl transform transition-transform scale-95 duration-300">
     </div>
 
     <script>
@@ -910,8 +1013,9 @@
 
         function toggleSidebar() { document.getElementById('mainSidebar').classList.toggle('sidebar-collapsed'); }
 
+        // MENGATUR PINDAH TAB MENU
         function switchTab(tab) {
-            ['sales', 'inventory', 'users', 'settings'].forEach(t => {
+            ['sales', 'inventory', 'launching', 'users', 'settings'].forEach(t => {
                 const app = document.getElementById('app-' + t), nav = document.getElementById('nav-' + t);
                 if(app) app.classList.add('hidden');
                 if(nav) { nav.classList.remove('bg-indigo-50', 'text-indigo-600'); nav.classList.add('text-slate-500'); }
@@ -924,6 +1028,7 @@
             if(tab === 'users') { renderUserManagement(); }
             if(tab === 'settings') { populateSettingsDropdowns(); }
             if(tab === 'sales') { if(rawSalesData.length > 0) { initSalesUI(); } }
+            if(tab === 'launching') { initLaunchingApp(); }
         }
 
         function togglePassword(inputId, iconElement) {
@@ -1012,6 +1117,7 @@
             }
         }
 
+        // MENGATUR TAMPILAN PROFIL BERDASARKAN ROLE & DIVISI
         function setupDashboardForUser() {
             const isAdm = currentUser.role === 'admin';
             const displayName = isAdm ? 'Riko' : currentUser.username; // Displaying actual Name from User Profile if admin
@@ -1020,7 +1126,16 @@
             document.getElementById('profileIcon').innerText = displayName.charAt(0).toUpperCase();
             document.getElementById('adminMenuSection').style.display = isAdm ? 'block' : 'none';
             document.querySelectorAll('.admin-only-feature').forEach(el => el.style.display = isAdm ? 'flex' : 'none');
+            
             if(isAdm) updateAdminNotifBadge();
+
+            // Pengecekan Aman untuk Elemen Divisi
+            const div = currentUser?.divisi || "Set Divisi";
+            const pos = currentUser?.posisi || "Add Posisi";
+            const divisiDisplay = document.getElementById('profileDivisiDisplay');
+            if(divisiDisplay) {
+                divisiDisplay.innerText = `${pos} - ${div}`;
+            }
         }
 
         function doLogout() {
@@ -1234,7 +1349,6 @@
                             await saveLargeArray('sales', rawSalesData);
                             await saveLargeArray('targets', rawTargetData);
                             
-                            let yList = Array.from(new Set([...incomingYears, ...incomingTargetYears])).join(', ');
                             alert(`Sinkronisasi Cloud Berhasil!\n\n- ${addedSales.toLocaleString('id-ID')} Transaksi Baru.\n- ${addedTargets} Target Baru.\n- ${updatedTargets} Target Diperbarui.`);
                         } catch(storageError) { alert("🛑 GAGAL MENYIMPAN KE CLOUD! Periksa koneksi internet Anda."); console.error(storageError); }
                         populateSettingsDropdowns(); initSalesUI();
@@ -1436,7 +1550,6 @@
             
             globalSalesTarget = filteredTarget.reduce((sum, t) => sum + (parseFloat(t.Target) || 0), 0);
             
-            // Deteksi jika Tahun dipilih tapi Bulan dibiarkan (Target Tahunan)
             let isAnnual = (cYear.length > 0 && !cYear.includes('ALL')) && cMonth.includes('ALL');
             const targetLabelEl = document.getElementById('targetPeriodLabel');
             if (targetLabelEl) targetLabelEl.innerText = isAnnual ? "Target Setahun (Tahunan)" : "Target Period (Filtered)";
@@ -2124,6 +2237,112 @@
 
         function closeInvVariantModal() {
             document.getElementById('invVariantModal').classList.add('hidden');
+        }
+
+        // ==========================================
+        // INTEGRASI FITUR JADWAL LAUNCHING
+        // ==========================================
+        let launchingData = [];
+
+        function openProfileModal() {
+            document.getElementById('profPosisi').value = currentUser.posisi || '';
+            document.getElementById('profDivisi').value = currentUser.divisi || '';
+            document.getElementById('profileModal').classList.remove('hidden');
+        }
+        function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
+
+        async function saveProfile() {
+            const p = document.getElementById('profPosisi').value.trim();
+            const d = document.getElementById('profDivisi').value;
+            if(!p || !d) return alert("Posisi dan Divisi wajib diisi!");
+            
+            currentUser.posisi = p; currentUser.divisi = d;
+            
+            const userIndex = dbUsers.findIndex(x => x.username === currentUser.username);
+            if(userIndex !== -1) {
+                dbUsers[userIndex].posisi = p; dbUsers[userIndex].divisi = d;
+                await saveDocStr('users', dbUsers);
+            }
+            setupDashboardForUser(); closeProfileModal();
+            if(!document.getElementById('app-launching').classList.contains('hidden')) initLaunchingApp();
+        }
+
+        // Aplikasi Launching Logic
+        function initLaunchingApp() {
+            const hasInputAccess = currentUser.divisi === 'Sales' || currentUser.role === 'admin';
+            document.getElementById('launching-sales-input').classList.toggle('hidden', !hasInputAccess);
+            
+            db.collection('launching_clothes').orderBy('created_at', 'desc').onSnapshot(snapshot => {
+                launchingData = [];
+                snapshot.forEach(doc => launchingData.push(doc.data()));
+                renderBajuLaunching();
+            });
+        }
+
+        function submitBajuLaunching() {
+            const br = document.getElementById('l-brand').value, n = document.getElementById('l-nama').value, k = document.getElementById('l-koleksi').value, v = document.getElementById('l-variant').value, s = document.getElementById('l-size').value, f = document.getElementById('l-foto').files[0];
+            
+            if(!n || !k || !v || !s || !f) return alert("Mohon lengkapi data produk dan foto!");
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const id = "LC-" + Date.now();
+                await db.collection('launching_clothes').doc(id).set({
+                    id: id, brand: br, nama: n, koleksi: k, variant: v, size: s, foto: e.target.result, 
+                    launching: '', kirim: '', by: currentUser.username, created_at: Date.now()
+                });
+                alert("Produk Berhasil Ditambahkan ke Jadwal!");
+                ['l-nama','l-koleksi','l-variant','l-size','l-foto'].forEach(x => document.getElementById(x).value = '');
+            };
+            reader.readAsDataURL(f);
+        }
+
+        function setTanggalLaunching(id, jenis) {
+            const tgl = document.getElementById(`input-${jenis}-${id}`).value;
+            if(!tgl) return alert("Pilih tanggal!");
+            db.collection('launching_clothes').doc(id).update({ [jenis]: tgl });
+        }
+
+        function renderBajuLaunching() {
+            const tbody = document.getElementById('launchingTableBody');
+            const search = document.getElementById('searchLaunching').value.toLowerCase();
+            
+            let filtered = launchingData.filter(c => (c.nama||'').toLowerCase().includes(search) || (c.koleksi||'').toLowerCase().includes(search));
+            
+            if(filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-slate-400 font-medium italic">Tidak ada jadwal ditemukan...</td></tr>`; return; }
+
+            tbody.innerHTML = filtered.map(c => {
+                let uiL = c.launching ? `<b class="text-slate-700 text-sm">${c.launching}</b>` : `<span class="text-rose-500 font-bold uppercase text-[9px]">Belum Diset</span>`;
+                if(!c.launching && (currentUser.divisi === 'Sales' || currentUser.role === 'admin')) {
+                    uiL = `<div class="flex flex-col gap-1 items-center"><input type="date" id="input-launching-${c.id}" class="text-[10px] border rounded p-1"><button onclick="setTanggalLaunching('${c.id}', 'launching')" class="bg-indigo-600 text-white text-[9px] px-2 py-1 rounded">Update</button></div>`;
+                }
+
+                let uiK = c.kirim ? `<b class="text-slate-700 text-sm">${c.kirim}</b>` : `<span class="text-rose-500 font-bold uppercase text-[9px]">Belum Diset</span>`;
+                if(!c.kirim && (currentUser.divisi === 'Gudang' || currentUser.role === 'admin')) {
+                    uiK = `<div class="flex flex-col gap-1 items-center"><input type="date" id="input-kirim-${c.id}" class="text-[10px] border rounded p-1"><button onclick="setTanggalLaunching('${c.id}', 'kirim')" class="bg-emerald-600 text-white text-[9px] px-2 py-1 rounded">Update</button></div>`;
+                }
+
+                return `
+                    <tr class="hover:bg-indigo-50/30 transition-colors">
+                        <td class="p-3 text-center"><img src="${c.foto}" onclick="document.getElementById('zoomImageSrc').src=this.src; document.getElementById('zoomModal').classList.remove('hidden')" class="w-12 h-12 object-cover rounded-xl shadow-sm cursor-zoom-in hover:scale-110 transition-transform"></td>
+                        <td class="p-3"><span class="bg-slate-800 text-white px-2 py-1 rounded text-[9px] font-black">${c.brand}</span></td>
+                        <td class="p-3"><div class="font-bold text-slate-700">${c.nama}</div><div class="text-[10px] text-slate-400 uppercase font-bold tracking-tight">${c.koleksi}</div></td>
+                        <td class="p-3 text-[10px] text-slate-500">Var: <b>${c.variant}</b><br>Size: <b>${c.size}</b></td>
+                        <td class="p-3 text-center align-middle">${uiL}</td>
+                        <td class="p-3 text-center align-middle">${uiK}</td>
+                        <td class="p-3 text-center">
+                            ${currentUser.role === 'admin' ? `<button onclick="db.collection('launching_clothes').doc('${c.id}').delete()" class="text-rose-400 hover:text-rose-600 transition-colors"><i class="fas fa-trash-alt"></i></button>` : '-'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function exportLaunchingToExcel() {
+            if (launchingData.length === 0) return alert("Database kosong!");
+            let csv = "Brand,Nama Baju,Koleksi,Variant,Size,Tgl Launching,Estimasi Kirim\n";
+            launchingData.forEach(c => csv += `"${c.brand}","${c.nama}","${c.koleksi}","${c.variant}","${c.size}","${c.launching || '-'}","${c.kirim || '-'}"\n`);
+            downloadCSV(csv, 'Laporan_Jadwal_Launching_ZSSHI');
         }
 
     </script>
