@@ -584,18 +584,31 @@
                 <p class="text-xs text-slate-500 mt-1 font-medium">Lengkapi posisi dan divisi Anda.</p>
             </div>
             <div class="space-y-4">
-                <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Posisi / Jabatan</label><input type="text" id="profPosisi" class="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500"></div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Posisi / Jabatan</label>
+                    <select id="profPosisi" class="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Pilih Posisi...</option>
+                        <option value="BOD">BOD</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Supervisor">Supervisor</option>
+                        <option value="Leader">Leader</option>
+                        <option value="Staff">Staff</option>
+                    </select>
+                </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Divisi Kerja</label>
-                    <select id="profDivisi" class="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                    <select id="profDivisi" onchange="toggleDivisiOther()" class="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="">Pilih Divisi...</option>
+                        <option value="BOD">BOD</option>
                         <option value="Sales">Sales</option>
-                        <option value="Gudang">Gudang</option>
-                        <option value="Finance">Finance</option>
                         <option value="Marketing">Marketing</option>
+                        <option value="FD">FD</option>
+                        <option value="RND">RND</option>
                         <option value="HRD">HRD</option>
-                        <option value="Administrator">Administrator</option>
+                        <option value="Gudang">Gudang</option>
+                        <option value="Other">Other</option>
                     </select>
+                    <input type="text" id="profDivisiOther" class="hidden mt-3 w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ketik Divisi Anda secara manual...">
                 </div>
             </div>
             <div class="flex gap-3 mt-8">
@@ -725,9 +738,64 @@
             if (yearDropdown && yearBtn && !yearDropdown.contains(e.target) && !yearBtn.contains(e.target)) { yearDropdown.classList.add('hidden'); }
             ['Col', 'Year', 'Month'].forEach(type => {
                 const drop = document.getElementById(`multi${type}SalesDropdown`); const btn = document.getElementById(`multi${type}SalesBtn`);
-                if (drop && btn && !drop.contains(e.target) && !btn.contains(e.target)) drop.classList.add('hidden');
+                if (drop && btn && !drop.contains(e.target) && !btn.contains(e.target) && e.target.id !== 'searchKoleksiSales') drop.classList.add('hidden');
             });
         });
+
+        // ==========================================
+        // PROFILE MODAL FUNCTIONS (ADDED)
+        // ==========================================
+        function toggleDivisiOther() {
+            const val = document.getElementById('profDivisi').value;
+            if (val === 'Other') { document.getElementById('profDivisiOther').classList.remove('hidden'); }
+            else { document.getElementById('profDivisiOther').classList.add('hidden'); }
+        }
+
+        function openProfileModal() {
+            document.getElementById('profPosisi').value = currentUser?.posisi || '';
+            const div = currentUser?.divisi || '';
+            const selDiv = document.getElementById('profDivisi');
+            const otherInput = document.getElementById('profDivisiOther');
+            
+            let found = false;
+            for(let i=0; i<selDiv.options.length; i++) { 
+                if(selDiv.options[i].value === div) found = true; 
+            }
+            
+            if(!found && div) { 
+                selDiv.value = 'Other'; 
+                otherInput.value = div; 
+                otherInput.classList.remove('hidden'); 
+            } else { 
+                selDiv.value = found ? div : ''; 
+                otherInput.classList.add('hidden'); 
+            }
+            
+            document.getElementById('profileModal').classList.remove('hidden');
+        }
+
+        function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
+
+        async function saveProfile() {
+            const pos = document.getElementById('profPosisi').value;
+            let div = document.getElementById('profDivisi').value;
+            if (div === 'Other') div = document.getElementById('profDivisiOther').value;
+            
+            if (!pos || !div) return alert('Mohon lengkapi Posisi dan Divisi Anda!');
+            
+            currentUser.posisi = pos; 
+            currentUser.divisi = div;
+            
+            const userIndex = dbUsers.findIndex(u => u.username === currentUser.username);
+            if (userIndex !== -1) { 
+                dbUsers[userIndex].posisi = pos; 
+                dbUsers[userIndex].divisi = div; 
+                await saveDocStr('users', dbUsers); 
+            }
+            
+            setupDashboardForUser(); 
+            closeProfileModal();
+        }
 
         async function initApp() {
             dbUsers = await loadDocStr('users', null);
@@ -1079,6 +1147,16 @@
             }
         }
 
+        function filterKoleksiSales() {
+            const input = document.getElementById('searchKoleksiSales').value.toLowerCase();
+            const items = document.querySelectorAll('#multiColSalesDropdown .col-item');
+            items.forEach(item => {
+                const text = item.querySelector('.collection-text').innerText.toLowerCase();
+                if(text.includes(input)) item.style.display = 'flex';
+                else item.style.display = 'none';
+            });
+        }
+
         function handleSalesMulti(type, elem) {
             const container = document.getElementById(`multi${type}SalesDropdown`); const checkboxes = container.querySelectorAll('.multi-checkbox');
             if(elem.value === 'ALL' && elem.checked) { checkboxes.forEach(cb => { if(cb.value !== 'ALL') cb.checked = false; }); } 
@@ -1106,8 +1184,9 @@
             document.getElementById('brandList').innerHTML = getUnique('Brand').map(b => `<button onclick="applySalesFilter('brand','${b}')" class="filter-btn ${b===cBrand?'active':''}">${b}</button>`).join('');
             
             const cols = getUnique('Koleksi');
-            let colHtml = `<label class="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 font-bold transition-colors"><input type="checkbox" value="ALL" class="multi-checkbox mr-3 rounded accent-indigo-600 w-4 h-4 cursor-pointer" onchange="handleSalesMulti('Col', this)" ${cCollection.includes('ALL') ? 'checked' : ''}> <span class="text-xs">Semua Koleksi</span></label>`;
-            cols.filter(c => c !== 'ALL').forEach(c => { colHtml += `<label class="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer text-xs font-medium text-slate-700 transition-colors"><input type="checkbox" value="${c}" class="multi-checkbox mr-3 rounded accent-indigo-600 w-4 h-4 cursor-pointer" onchange="handleSalesMulti('Col', this)" ${cCollection.includes(c) ? 'checked' : ''}> <span class="truncate">${c}</span></label>`; });
+            let colHtml = `<div class="p-2 border-b border-slate-100 sticky top-0 bg-white z-10"><input type="text" id="searchKoleksiSales" onkeyup="filterKoleksiSales()" placeholder="Cari Koleksi..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500"></div>`;
+            colHtml += `<label class="col-item flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 font-bold transition-colors"><input type="checkbox" value="ALL" class="multi-checkbox mr-3 rounded accent-indigo-600 w-4 h-4 cursor-pointer" onchange="handleSalesMulti('Col', this)" ${cCollection.includes('ALL') ? 'checked' : ''}> <span class="text-xs collection-text">Semua Koleksi</span></label>`;
+            cols.filter(c => c !== 'ALL').forEach(c => { colHtml += `<label class="col-item flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer text-xs font-medium text-slate-700 transition-colors"><input type="checkbox" value="${c}" class="multi-checkbox mr-3 rounded accent-indigo-600 w-4 h-4 cursor-pointer" onchange="handleSalesMulti('Col', this)" ${cCollection.includes(c) ? 'checked' : ''}> <span class="truncate collection-text">${c}</span></label>`; });
             document.getElementById('multiColSalesDropdown').innerHTML = colHtml; updateSalesMultiText('Col');
 
             const years = ['ALL', ...new Set(workingSalesData.map(r => getYear(r.Tanggal)).filter(y => y !== null))].sort().reverse();
@@ -1236,7 +1315,13 @@
                 salesCharts.source = new Chart(document.getElementById('sourceChart'), { type: 'bar', data: { labels: sData.map(x => x[0]), datasets: [{ data: sData.map(x => x[1].r), qtyData: sData.map(x => x[1].q), backgroundColor: '#8b5cf6', borderRadius: 12, barThickness: 25 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, layout: { padding: { right: 100 } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => [` Revenue: ${formatRupiah(ctx.parsed.x)}`, ` Quantity: ${ctx.dataset.qtyData[ctx.dataIndex]} pcs`] } }, datalabels: { anchor: 'end', align: 'right', offset: 8, color: '#1e293b', font: { weight: '800', size: 10 }, formatter: (v) => formatRupiah(v) } }, scales: { x: { display: false, grid: { display: false } }, y: { grid: { display: false }, ticks: { font: { weight: '800', size: 11 } } } }, onClick: (e, elements, chart) => { if (elements.length > 0) openSalesModal('source', sData[elements[0].index][0]); } } });
             } else { document.getElementById('sourceSection').style.display = 'none'; }
 
-            if(['MITRA', 'RESELLER'].includes(cSource)) { document.getElementById('customerSection').style.display = 'block'; const t5cust = getSortedTop(agg.customers, 'q'); salesCharts.customer = new Chart(document.getElementById('customerChart'), { type: 'bar', data: { labels: t5cust.map(x => extractCity(x[0])), datasets: [{ data: t5cust.map(x=>x[1].q), revenueData: t5cust.map(x=>x[1].r), backgroundColor: '#f59e0b', borderRadius: 10, clip: false }] }, options: dualBarOps(t5cust.map(x=>x[0]), 'customer') }); } else { document.getElementById('customerSection').style.display = 'none'; }
+            if(['MITRA', 'RESELLER'].includes(cSource)) { 
+                document.getElementById('customerSection').style.display = 'block'; 
+                const t5cust = getSortedTop(agg.customers, 'r'); 
+                salesCharts.customer = new Chart(document.getElementById('customerChart'), { type: 'bar', data: { labels: t5cust.map(x => extractCity(x[0])), datasets: [{ data: t5cust.map(x=>x[1].q), revenueData: t5cust.map(x=>x[1].r), backgroundColor: '#f59e0b', borderRadius: 10, clip: false }] }, options: dualBarOps(t5cust.map(x=>x[0]), 'customer') }); 
+            } else { 
+                document.getElementById('customerSection').style.display = 'none'; 
+            }
 
             let trendData = []; const titleEl = document.getElementById('trendTitle');
             if (cYear.includes('ALL')) { titleEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-blue-500"></span> Top 10 Monthly Performance (Filtered)`; trendData = Object.entries(agg.allTimeTrend).sort((a, b) => b[1].q - a[1].q).slice(0, 10); } 
@@ -1278,7 +1363,8 @@
             } else if (type === 'customer') {
                 thName.innerText = 'Nama Mitra / City'; const selectedVal = document.getElementById('salesModalDropdownSelect').value; let agg = {};
                 currentSalesFilteredData.forEach(r => { let custName = String(r['Nama Customer'] || 'N/A').trim(); if(selectedVal === 'ALL' || custName === selectedVal) { if (!agg[custName]) agg[custName] = {q: 0, r: 0}; agg[custName].q += r['Qty Terjual']; agg[custName].r += r.Revenue; } });
-                dataArr = Object.entries(agg).map(([name, data]) => ({name, q: data.q, r: data.r})); dataArr.sort((a, b) => b.q - a.q);
+                dataArr = Object.entries(agg).map(([name, data]) => ({name, q: data.q, r: data.r})); 
+                dataArr.sort((a, b) => b.r - a.r);
             }
             if(dataArr.length === 0) { tbody.innerHTML = `<tr><td colspan=\"3\" class=\"px-6 py-10 text-center text-slate-400 font-medium italic\">Tidak ada data untuk ditampilkan</td></tr>`; } else {
                 tbody.innerHTML = dataArr.map((item, index) => `<tr class=\"hover:bg-indigo-50/40 transition-colors group cursor-default\"><td class=\"px-6 py-4\"><div class=\"flex items-center gap-3\"><span class=\"w-6 h-6 rounded-full ${index < 3 ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'} flex items-center justify-center text-[10px] font-extrabold group-hover:scale-110 transition-transform\">${index + 1}</span><span class=\"font-extrabold text-slate-700 text-xs\">${item.name}</span></div></td><td class=\"px-6 py-4 text-right font-black text-slate-600\">${item.q.toLocaleString('id-ID')} <span class=\"text-[10px] font-normal text-slate-400\">pcs</span></td><td class=\"px-6 py-4 text-right font-black text-emerald-600 group-hover:text-emerald-500 transition-colors\">${formatRupiah(item.r)}</td></tr>`).join('');
