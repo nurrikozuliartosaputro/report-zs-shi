@@ -198,8 +198,9 @@
         
                 <div id="filterArea" class="hidden space-y-6 mb-12">
                     <div class="bg-white/50 p-6 rounded-[32px] border border-white shadow-sm space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
                             <div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Pilih Brand</p><div id="brandList" class="flex flex-wrap gap-2"></div></div>
+                            <div class="relative w-full z-50"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Periode</p><button id="multiPeriodeSalesBtn" onclick="toggleSalesDropdown(event, 'multiPeriodeSalesDropdown')" class="w-full text-left px-4 py-3 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all flex justify-between items-center"><span id="multiPeriodeSalesText" class="truncate text-slate-600">Semua Periode</span><i class="fas fa-chevron-down text-slate-400"></i></button><div id="multiPeriodeSalesDropdown" class="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl hidden max-h-64 overflow-y-auto flex flex-col py-1"></div></div>
                             <div class="relative w-full z-40"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Koleksi</p><button id="multiColSalesBtn" onclick="toggleSalesDropdown(event, 'multiColSalesDropdown')" class="w-full text-left px-4 py-3 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all flex justify-between items-center"><span id="multiColSalesText" class="truncate text-slate-600">Semua Koleksi</span><i class="fas fa-chevron-down text-slate-400"></i></button><div id="multiColSalesDropdown" class="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl hidden max-h-64 overflow-y-auto flex flex-col py-1"></div></div>
                             <div class="relative w-full z-30"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Pilih Tahun</p><button id="multiYearSalesBtn" onclick="toggleSalesDropdown(event, 'multiYearSalesDropdown')" class="w-full text-left px-4 py-3 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all flex justify-between items-center"><span id="multiYearSalesText" class="truncate text-slate-600">Semua Tahun</span><i class="fas fa-chevron-down text-slate-400"></i></button><div id="multiYearSalesDropdown" class="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl hidden max-h-64 overflow-y-auto flex flex-col py-1"></div></div>
                             <div class="relative w-full z-20"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Pilih Bulan</p><button id="multiMonthSalesBtn" onclick="toggleSalesDropdown(event, 'multiMonthSalesDropdown')" class="w-full text-left px-4 py-3 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all flex justify-between items-center"><span id="multiMonthSalesText" class="truncate text-slate-600">Semua Bulan</span><i class="fas fa-chevron-down text-slate-400"></i></button><div id="multiMonthSalesDropdown" class="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl hidden max-h-64 overflow-y-auto flex flex-col py-1"></div></div>
@@ -268,6 +269,10 @@
                         <div class="relative">
                             <select id="globalBrandFilter" onchange="refreshInvApp()" class="pl-8 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer transition-all"><option value="all">Semua Brand</option></select>
                             <i class="fas fa-tag absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 text-xs"></i>
+                        </div>
+                        <div class="relative">
+                            <select id="globalPeriodeFilter" onchange="refreshInvApp()" class="pl-8 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer transition-all"><option value="all">Semua Periode</option></select>
+                            <i class="fas fa-calendar-alt absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 text-xs"></i>
                         </div>
                         <div class="admin-only-feature flex items-center gap-3 hidden">
                             <div class="h-6 w-px bg-slate-200"></div>
@@ -357,20 +362,38 @@
                             <p class="text-xs text-slate-500 font-medium">Monitoring & Rencana Rilis Produk ZS & SHI</p>
                         </div>
                     </div>
-                    <button onclick="exportLaunchingToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-md transition-all active:scale-95 flex items-center gap-2">
-                        <i class="fas fa-file-excel"></i> Export Laporan
-                    </button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div id="launching-import-tools" class="hidden flex gap-2 border-r border-slate-200 pr-3 mr-1">
+                            <button onclick="downloadTemplateLaunching()" class="bg-white border border-indigo-200 text-indigo-600 px-3 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-indigo-50 transition-all flex items-center gap-2">
+                                <i class="fas fa-file-download"></i> Template Import
+                            </button>
+                            <input type="file" id="excelLaunchInput" accept=".xlsx, .xls" class="hidden" onchange="handleLaunchingExcelUpload(this)">
+                            <button onclick="document.getElementById('excelLaunchInput').click()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2">
+                                <i class="fas fa-file-upload"></i> Import Data
+                            </button>
+                        </div>
+                        <button onclick="exportLaunchingToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-md transition-all active:scale-95 flex items-center gap-2">
+                            <i class="fas fa-file-excel"></i> Export Laporan
+                        </button>
+                    </div>
                 </div>
 
                 <div id="launching-sales-input" class="hidden bg-white p-6 rounded-2xl border-l-4 border-l-indigo-600 shadow-sm mb-8 animate-enter delay-100">
                     <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider"><i class="fas fa-plus-circle text-indigo-500"></i> Tambah Data Baju Baru</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Brand</label><select id="l-brand" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"><option value="ZS">ZS</option><option value="SHI">SHI</option></select></div>
+                        <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Periode</label><select id="l-periode" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"><option value="Regular">Regular</option><option value="Ramadhan">Ramadhan</option></select></div>
+                        <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tahun Periode</label><input type="number" id="l-tahun" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: 2026"></div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nama Baju</label><input type="text" id="l-nama" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: Dress A"></div>
                         <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Koleksi</label><input type="text" id="l-koleksi" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: Raya 2026"></div>
                         <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Variant</label><input type="text" id="l-variant" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Warna"></div>
                         <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Size</label><input type="text" id="l-size" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="S, M, L, XL"></div>
                     </div>
+                    
                     <div class="mt-4 flex flex-col md:flex-row items-center gap-4">
                         <div class="flex-1"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Upload Foto Produk (Opsional)</label><input type="file" id="l-foto" accept="image/*" class="w-full text-xs font-bold text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"></div>
                         <button onclick="submitBajuLaunching()" class="w-full md:w-auto bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg active:scale-95"><i class="fas fa-save mr-2"></i> Simpan Data Produk</button>
@@ -388,7 +411,7 @@
                         <table class="w-full text-left whitespace-nowrap min-w-[1000px]">
                             <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black border-b tracking-widest">
                                 <tr>
-                                    <th class="p-4 text-center">Foto</th>
+                                    <th class="p-4 text-center w-24">Foto</th>
                                     <th class="p-4">Brand</th>
                                     <th class="p-4">Nama Produk / Koleksi</th>
                                     <th class="p-4">Spesifikasi</th>
@@ -490,6 +513,8 @@
 
         </main>
     </div>
+
+    <input type="file" id="globalPhotoEditInput" accept="image/*" class="hidden" onchange="handlePhotoEditUpload(event)">
 
     <div id="inputTargetModal" class="hidden fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col modal-animate">
@@ -664,16 +689,29 @@
     </div>
 
     <div id="detailTerjualModal" class="hidden fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 modal-animate">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 modal-animate">
             <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
-                <h2 id="breakdownTitle" class="text-sm font-black text-slate-800 tracking-tight leading-tight">Detail</h2>
+                <h2 id="breakdownTitle" class="text-sm font-black text-slate-800 tracking-tight leading-tight">Detail Penjualan</h2>
                 <button onclick="document.getElementById('detailTerjualModal').classList.add('hidden')" class="text-slate-400 hover:text-rose-500"><i class="fas fa-times"></i></button>
             </div>
-            <div id="breakdownContent" class="space-y-1"></div>
+            <div id="breakdownContent" class="space-y-1 max-h-[60vh] overflow-y-auto pr-2"></div>
         </div>
     </div>
 
     <script>
+        // FUNGSI EKSTRAKSI KHUSUS RAMADHAN
+        const extractSize = (variant) => {
+            if (!variant || variant === '-') return '';
+            let match = String(variant).match(/\s+(XXL|XL|L|M|S|ALL\s*SIZE)$/i);
+            return match ? match[1].toUpperCase().replace(/\s+/g, ' ') : '';
+        };
+        const extractRamadhanName = (variant) => {
+            if (!variant || variant === '-') return 'Unknown';
+            let v = String(variant).trim();
+            v = v.replace(/\s+(XXL|XL|L|M|S|ALL\s*SIZE)$/i, '');
+            return v.trim();
+        };
+
         // INISIALISASI FIREBASE CLOUD FIRESTORE
         const firebaseConfig = { apiKey: "AIzaSyArxPcQD8b5X5atCKvw7mmv-R_GkrfH5Bg", authDomain: "report-zs-shi.firebaseapp.com", projectId: "report-zs-shi", storageBucket: "report-zs-shi.firebasestorage.app", messagingSenderId: "424606872057", appId: "1:424606872057:web:5ccd78e557dcc72d598d28" };
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
@@ -716,7 +754,7 @@
 
         let dbUsers = []; let resetRequests = []; let currentUser = null; let pendingUserToChangePass = null; 
         let rawSalesData = []; let rawTargetData = []; let workingSalesData = []; let workingTargetData = []; let salesCharts = {}; let currentSalesFilteredData = []; 
-        let cBrand = 'ALL', cSource = 'ALL', cBazaar = 'ALL'; let cMonth = ['ALL'], cYear = ['ALL'], cCollection = ['ALL'];
+        let cBrand = 'ALL', cSource = 'ALL', cBazaar = 'ALL'; let cMonth = ['ALL'], cYear = ['ALL'], cCollection = ['ALL'], cPeriode = ['ALL'];
         let globalSalesTarget = 0; let sysActiveYearFilter = []; let sysInvFileName = "";
         
         const brandColors = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#a855f7'];
@@ -736,14 +774,14 @@
             if (invDropdown && invBtn && !invDropdown.contains(e.target) && !invBtn.contains(e.target)) { invDropdown.classList.add('hidden'); }
             const yearDropdown = document.getElementById('multiYearDropdown'), yearBtn = document.getElementById('multiYearBtn');
             if (yearDropdown && yearBtn && !yearDropdown.contains(e.target) && !yearBtn.contains(e.target)) { yearDropdown.classList.add('hidden'); }
-            ['Col', 'Year', 'Month'].forEach(type => {
+            ['Col', 'Year', 'Month', 'Periode'].forEach(type => {
                 const drop = document.getElementById(`multi${type}SalesDropdown`); const btn = document.getElementById(`multi${type}SalesBtn`);
                 if (drop && btn && !drop.contains(e.target) && !btn.contains(e.target) && e.target.id !== 'searchKoleksiSales') drop.classList.add('hidden');
             });
         });
 
         // ==========================================
-        // PROFILE MODAL FUNCTIONS (ADDED)
+        // PROFILE MODAL FUNCTIONS
         // ==========================================
         function toggleDivisiOther() {
             const val = document.getElementById('profDivisi').value;
@@ -1035,8 +1073,8 @@
         }
 
         function downloadExcelTemplate() {
-            const salesData = [{"Brand": "ZS","Nama Baju": "Dress Raya A","Variant": "M","Koleksi": "Raya Collection","Tanggal": "2025-01-01","Source": "Bazaar","Nama Customer": "","Qty Terjual": 10,"Revenue": 12000000,"Sales Tag": "Bazaar Kokas"}];
-            const targetData = [{"Brand": "ZS", "Tahun": "2025", "Bulan": "Januari", "Source": "Bazaar", "Target": 200000000}];
+            const salesData = [{"Periode": "Ramadhan 2026", "Brand": "ZS","Nama Baju": "Dress Raya A","Variant": "Dress Raya A M","Koleksi": "Raya Collection","Tanggal": "2026-03-01","Source": "Bazaar","Nama Customer": "","Qty Terjual": 10,"Revenue": 12000000,"Sales Tag": "Bazaar Kokas"}];
+            const targetData = [{"Brand": "ZS", "Tahun": "2026", "Bulan": "Maret", "Source": "Bazaar", "Target": 200000000}];
             const wb = XLSX.utils.book_new(), wsSales = XLSX.utils.json_to_sheet(salesData), wsTarget = XLSX.utils.json_to_sheet(targetData);
             XLSX.utils.book_append_sheet(wb, wsSales, "Data Sales"); XLSX.utils.book_append_sheet(wb, wsTarget, "Data Target"); XLSX.writeFile(wb, "Template_Sales_Target_Lengkap.xlsx");
         }
@@ -1065,6 +1103,7 @@
                         if(newSalesData.length === 0 && newTargetData.length === 0) { alert("Format tidak dikenali! Pastikan file memiliki kolom 'Qty Terjual' atau 'Target'."); loader.classList.add('hidden'); return; }
 
                         newSalesData = newSalesData.map(r => {
+                            if(r.Periode) r.Periode = String(r.Periode).trim(); else r.Periode = "Regular";
                             if(r.Brand) r.Brand = normalizeStr(r.Brand); if(r.Source) r.Source = normalizeStr(r.Source); if(r.Koleksi) r.Koleksi = normalizeStr(r.Koleksi); if(r['Sales Tag']) r['Sales Tag'] = normalizeStr(r['Sales Tag']);
                             let qtyRaw = String(r['Qty Terjual'] || '0').replace(/[^0-9.-]+/g,""); r['Qty Terjual'] = parseInt(qtyRaw) || 0;
                             let revRaw = String(r.Revenue || '0').replace(/[^0-9.-]+/g,""); r.Revenue = parseFloat(revRaw) || 0;
@@ -1140,7 +1179,7 @@
                 document.getElementById('targetStatus').innerHTML = `Database Target: <span class="text-emerald-500 font-extrabold">${workingTargetData.length > 0 ? '✅ '+workingTargetData.length.toLocaleString('id-ID')+' baris' : '❌ Kosong'}</span>`;
                 if(workingSalesData.length > 0) { document.getElementById('filterArea').classList.remove('hidden'); document.getElementById('targetSection').classList.remove('hidden'); document.getElementById('chartsArea').style.display = 'grid'; }
                 
-                cBrand = 'ALL'; cSource = 'ALL'; cBazaar = 'ALL'; cMonth = ['ALL']; cYear = ['ALL']; cCollection = ['ALL'];
+                cBrand = 'ALL'; cSource = 'ALL'; cBazaar = 'ALL'; cMonth = ['ALL']; cYear = ['ALL']; cCollection = ['ALL']; cPeriode = ['ALL'];
                 updateSalesDateRange(); renderSalesFilterButtons(); updateSalesDashboard();
             } else {
                 document.getElementById('fileStatus').classList.add('hidden'); document.getElementById('filterArea').classList.add('hidden'); document.getElementById('targetSection').classList.add('hidden'); document.getElementById('chartsArea').style.display = 'none'; document.getElementById('growthSection').classList.add('hidden');
@@ -1165,7 +1204,7 @@
             if(checkedBoxes.length === 0) { const allCb = container.querySelector('.multi-checkbox[value="ALL"]'); if(allCb) allCb.checked = true; }
 
             const selectedVals = Array.from(container.querySelectorAll('.multi-checkbox:checked')).map(cb => cb.value);
-            if(type === 'Col') cCollection = selectedVals; else if(type === 'Year') { cYear = selectedVals; cMonth = ['ALL']; } else if(type === 'Month') cMonth = selectedVals;
+            if(type === 'Col') cCollection = selectedVals; else if(type === 'Year') { cYear = selectedVals; cMonth = ['ALL']; } else if(type === 'Month') cMonth = selectedVals; else if(type === 'Periode') cPeriode = selectedVals;
             updateSalesMultiText(type); if(type === 'Year') renderSalesFilterButtons();
             updateSalesDashboard();
         }
@@ -1175,6 +1214,7 @@
             if(type === 'Col') { vals = cCollection; textElem = document.getElementById('multiColSalesText'); defaultText = 'Semua Koleksi'; }
             if(type === 'Year') { vals = cYear; textElem = document.getElementById('multiYearSalesText'); defaultText = 'Semua Tahun'; }
             if(type === 'Month') { vals = cMonth; textElem = document.getElementById('multiMonthSalesText'); defaultText = 'Semua Bulan'; }
+            if(type === 'Periode') { vals = cPeriode; textElem = document.getElementById('multiPeriodeSalesText'); defaultText = 'Semua Periode'; }
             if (!textElem) return;
             if(vals.includes('ALL')) { textElem.innerText = defaultText; } else if (vals.length === 1) { textElem.innerText = vals[0]; } else { textElem.innerText = `${vals.length} Dipilih`; }
         }
@@ -1183,6 +1223,11 @@
             const getUnique = (key) => ['ALL', ...new Set(workingSalesData.map(r => String(r[key] || '').trim()))].filter(v => v !== 'undefined' && v !== '');
             document.getElementById('brandList').innerHTML = getUnique('Brand').map(b => `<button onclick="applySalesFilter('brand','${b}')" class="filter-btn ${b===cBrand?'active':''}">${b}</button>`).join('');
             
+            const periodes = ['ALL', ...new Set(workingSalesData.map(r => String(r.Periode || 'Regular').trim()))].filter(v => v !== '');
+            let perHtml = `<label class="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 font-bold transition-colors"><input type="checkbox" value="ALL" class="multi-checkbox mr-3 rounded accent-indigo-600 w-4 h-4 cursor-pointer" onchange="handleSalesMulti('Periode', this)" ${cPeriode.includes('ALL') ? 'checked' : ''}> <span class="text-xs">Semua Periode</span></label>`;
+            periodes.filter(p => p !== 'ALL').forEach(p => { perHtml += `<label class="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer text-xs font-medium text-slate-700 transition-colors"><input type="checkbox" value="${p}" class="multi-checkbox mr-3 rounded accent-indigo-600 w-4 h-4 cursor-pointer" onchange="handleSalesMulti('Periode', this)" ${cPeriode.includes(p) ? 'checked' : ''}> <span class="truncate">${p}</span></label>`; });
+            document.getElementById('multiPeriodeSalesDropdown').innerHTML = perHtml; updateSalesMultiText('Periode');
+
             const cols = getUnique('Koleksi');
             let colHtml = `<div class="p-2 border-b border-slate-100 sticky top-0 bg-white z-10"><input type="text" id="searchKoleksiSales" onkeyup="filterKoleksiSales()" placeholder="Cari Koleksi..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500"></div>`;
             colHtml += `<label class="col-item flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 font-bold transition-colors"><input type="checkbox" value="ALL" class="multi-checkbox mr-3 rounded accent-indigo-600 w-4 h-4 cursor-pointer" onchange="handleSalesMulti('Col', this)" ${cCollection.includes('ALL') ? 'checked' : ''}> <span class="text-xs collection-text">Semua Koleksi</span></label>`;
@@ -1209,6 +1254,7 @@
                 if (!cYear.includes('ALL')) validBazaarData = validBazaarData.filter(r => cYear.includes(getYear(r.Tanggal)));
                 if (!cMonth.includes('ALL')) validBazaarData = validBazaarData.filter(r => cMonth.includes(getMonthName(r.Tanggal)));
                 if (cBrand !== 'ALL') validBazaarData = validBazaarData.filter(r => r.Brand === cBrand);
+                if (!cPeriode.includes('ALL')) validBazaarData = validBazaarData.filter(r => cPeriode.includes(r.Periode || 'Regular'));
                 const bazaarTags = ['ALL', ...new Set(validBazaarData.map(r => String(r['Sales Tag'] || '').trim()))].filter(v => v !== '');
                 if (cBazaar !== 'ALL' && !bazaarTags.includes(cBazaar)) cBazaar = 'ALL';
                 document.getElementById('bazaarSelect').innerHTML = bazaarTags.map(t => `<option value="${t}" ${t===cBazaar?'selected':''}>${t}</option>`).join('');
@@ -1234,16 +1280,20 @@
 
         function updateSalesDashboard() {
             let filtered = workingSalesData.filter(r => 
-                (cBrand === 'ALL' || r.Brand === cBrand) && (cCollection.includes('ALL') || cCollection.includes(r.Koleksi)) && 
-                (cSource === 'ALL' || r.Source === cSource) && (cBazaar === 'ALL' || r['Sales Tag'] === cBazaar) && 
-                (cYear.includes('ALL') || cYear.includes(getYear(r.Tanggal))) && (cMonth.includes('ALL') || cMonth.includes(getMonthName(r.Tanggal)))
+                (cBrand === 'ALL' || r.Brand === cBrand) && 
+                (cPeriode.includes('ALL') || cPeriode.includes(r.Periode || 'Regular')) &&
+                (cCollection.includes('ALL') || cCollection.includes(r.Koleksi)) && 
+                (cSource === 'ALL' || r.Source === cSource) && 
+                (cBazaar === 'ALL' || r['Sales Tag'] === cBazaar) && 
+                (cYear.includes('ALL') || cYear.includes(getYear(r.Tanggal))) && 
+                (cMonth.includes('ALL') || cMonth.includes(getMonthName(r.Tanggal)))
             );
             currentSalesFilteredData = filtered;
 
             let showGrowth = false; let prevYearData = []; let prevLabel = "";
             if (cYear.length === 1 && cYear[0] !== 'ALL') {
                 const lastYear = (parseInt(cYear[0]) - 1).toString();
-                prevYearData = workingSalesData.filter(r => getYear(r.Tanggal) === lastYear && (cBrand === 'ALL' || r.Brand === cBrand) && (cCollection.includes('ALL') || cCollection.includes(r.Koleksi)) && (cSource === 'ALL' || r.Source === cSource) && (cBazaar === 'ALL' || r['Sales Tag'] === cBazaar) && (cMonth.includes('ALL') || cMonth.includes(getMonthName(r.Tanggal))));
+                prevYearData = workingSalesData.filter(r => getYear(r.Tanggal) === lastYear && (cBrand === 'ALL' || r.Brand === cBrand) && (cPeriode.includes('ALL') || cPeriode.includes(r.Periode || 'Regular')) && (cCollection.includes('ALL') || cCollection.includes(r.Koleksi)) && (cSource === 'ALL' || r.Source === cSource) && (cBazaar === 'ALL' || r['Sales Tag'] === cBazaar) && (cMonth.includes('ALL') || cMonth.includes(getMonthName(r.Tanggal))));
                 if (cMonth.includes('ALL')) { prevLabel = `Tahun ${lastYear}`; showGrowth = true; } else if (cMonth.length === 1) { prevLabel = `${cMonth[0]} ${lastYear}`; showGrowth = true; } else if (cMonth.length > 1) { prevLabel = `Periode Sama ${lastYear}`; showGrowth = true; }
             }
 
@@ -1267,7 +1317,13 @@
 
             let agg = { products: {}, collections: {}, brands: {}, customers: {}, sources: {}, timeline: {}, monthlyTrend: {}, allTimeTrend: {} };
             filtered.forEach(r => {
-                const name = r['Nama Baju'], col = r['Koleksi'] || 'N/A', productID = name; 
+                let name = r['Nama Baju'];
+                // LOGIKA NAMA VARIANT KHUSUS RAMADHAN
+                if (r.Periode && r.Periode.toLowerCase().includes('ramadhan')) {
+                    name = extractRamadhanName(r.Variant);
+                }
+
+                const col = r['Koleksi'] || 'N/A', productID = name; 
                 const brand = r.Brand, qty = parseInt(r['Qty Terjual']) || 0, rev = parseFloat(r.Revenue) || 0, dateRaw = r.Tanggal, mName = getMonthName(dateRaw), yName = getYear(dateRaw);
                 const d = new Date(dateRaw); const dLabel = isNaN(d) ? dateRaw : `${String(d.getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"][d.getMonth()]}`;
                 const monthYearLabel = `${mName ? mName.substring(0,3) : '??'}-${yName}`;
@@ -1349,16 +1405,16 @@
             let dataArr = [];
             if (type === 'qty' || type === 'rev') {
                 thName.innerText = 'Nama Baju'; let agg = {};
-                currentSalesFilteredData.forEach(r => { let n = r['Nama Baju']; if (!agg[n]) agg[n] = {q: 0, r: 0}; agg[n].q += r['Qty Terjual']; agg[n].r += r.Revenue; });
+                currentSalesFilteredData.forEach(r => { let n = r['Nama Baju']; if (r.Periode && r.Periode.toLowerCase().includes('ramadhan')) n = extractRamadhanName(r.Variant); if (!agg[n]) agg[n] = {q: 0, r: 0}; agg[n].q += r['Qty Terjual']; agg[n].r += r.Revenue; });
                 dataArr = Object.entries(agg).map(([name, data]) => ({name, q: data.q, r: data.r}));
                 if (type === 'qty') dataArr.sort((a, b) => b.q - a.q); else dataArr.sort((a, b) => b.r - a.r); dataArr = dataArr.slice(0, 10);
             } else if (type === 'collection') {
                 thName.innerText = 'Nama Produk - Varian'; const selectedVal = document.getElementById('salesModalDropdownSelect').value; let agg = {};
-                currentSalesFilteredData.filter(r => (r.Koleksi || 'N/A') === selectedVal).forEach(r => { let varianLabel = r['Variant'] && r['Variant'] !== '-' ? r['Variant'] : 'All Size'; let n = `${r['Nama Baju']} <span class="text-slate-400 font-medium">(${varianLabel})</span>`; if (!agg[n]) agg[n] = {q: 0, r: 0}; agg[n].q += r['Qty Terjual']; agg[n].r += r.Revenue; });
+                currentSalesFilteredData.filter(r => (r.Koleksi || 'N/A') === selectedVal).forEach(r => { let varianLabel = r['Variant'] && r['Variant'] !== '-' ? r['Variant'] : 'All Size'; let nama = r['Nama Baju']; if (r.Periode && r.Periode.toLowerCase().includes('ramadhan')) nama = extractRamadhanName(r.Variant); let n = `${nama} <span class="text-slate-400 font-medium">(${varianLabel})</span>`; if (!agg[n]) agg[n] = {q: 0, r: 0}; agg[n].q += r['Qty Terjual']; agg[n].r += r.Revenue; });
                 dataArr = Object.entries(agg).map(([name, data]) => ({name, q: data.q, r: data.r})); dataArr.sort((a, b) => b.q - a.q); 
             } else if (type === 'source') {
                 thName.innerText = 'Nama Baju'; const selectedVal = document.getElementById('salesModalDropdownSelect').value; let agg = {};
-                currentSalesFilteredData.filter(r => (r.Source || 'N/A') === selectedVal).forEach(r => { let n = r['Nama Baju']; if (!agg[n]) agg[n] = {q: 0, r: 0}; agg[n].q += r['Qty Terjual']; agg[n].r += r.Revenue; });
+                currentSalesFilteredData.filter(r => (r.Source || 'N/A') === selectedVal).forEach(r => { let n = r['Nama Baju']; if (r.Periode && r.Periode.toLowerCase().includes('ramadhan')) n = extractRamadhanName(r.Variant); if (!agg[n]) agg[n] = {q: 0, r: 0}; agg[n].q += r['Qty Terjual']; agg[n].r += r.Revenue; });
                 dataArr = Object.entries(agg).map(([name, data]) => ({name, q: data.q, r: data.r})); dataArr.sort((a, b) => b.r - a.r); dataArr = dataArr.slice(0, 15); 
             } else if (type === 'customer') {
                 thName.innerText = 'Nama Mitra / City'; const selectedVal = document.getElementById('salesModalDropdownSelect').value; let agg = {};
@@ -1409,9 +1465,14 @@
                                 if(!row.Product || String(row.Product).trim() === '') return null;
                                 const stockRaw = (row.Stock ? String(row.Stock) : '').toLowerCase(); let status = 'UNKNOWN';
                                 if(stockRaw.includes('new')) status = 'NEW'; else if(stockRaw.includes('aging')) status = 'AGING'; else if(stockRaw.includes('slow')) status = 'SLOW';
-                                const onHandRaw = row.OnHand ? String(row.OnHand) : '0'; const priceRaw = row.UnitPrice ? String(row.UnitPrice) : '0'; const codeRaw = row.Code ? String(row.Code).trim() : ''; const variantRaw = row.Variant ? String(row.Variant).trim() : '';
+                                
+                                // REVISI: Menggunakan kolom 'Available' untuk Inventory 
+                                const onHandRaw = row.Available ? String(row.Available) : '0'; 
+                                
+                                const priceRaw = row.UnitPrice ? String(row.UnitPrice) : '0'; const codeRaw = row.Code ? String(row.Code).trim() : ''; const variantRaw = row.Variant ? String(row.Variant).trim() : '';
+                                const periodeRaw = row.Periode ? String(row.Periode).trim() : 'Regular';
                                 let isMinor = false; if (row.Product && String(row.Product).toLowerCase().includes('minor')) isMinor = true; if (row.Condition && String(row.Condition).toLowerCase().includes('minor')) isMinor = true;
-                                return { id: codeRaw || (now + index), code: codeRaw, variant: variantRaw, brand: row.Brand ? String(row.Brand) : 'No Brand', fullName: String(row.Product), cleanName: String(row.Product).split('(')[0].trim(), collection: row.Collection ? String(row.Collection) : 'Others', onHand: parseInt(onHandRaw.replace(/,/g, '')) || 0, price: parseFloat(priceRaw.replace(/,/g, '')) || 0, status: status, condition: isMinor ? 'Minor' : 'Normal' };
+                                return { id: codeRaw || (now + index), code: codeRaw, variant: variantRaw, brand: row.Brand ? String(row.Brand) : 'No Brand', fullName: String(row.Product), cleanName: String(row.Product).split('(')[0].trim(), collection: row.Collection ? String(row.Collection) : 'Others', periode: periodeRaw, onHand: parseInt(onHandRaw.replace(/,/g, '')) || 0, price: parseFloat(priceRaw.replace(/,/g, '')) || 0, status: status, condition: isMinor ? 'Minor' : 'Normal' };
                             }).filter(item => item !== null);
                             
                             if (newItems.length === 0) { alert("Sistem tidak mendeteksi data produk yang valid. Pastikan header CSV Anda memiliki kolom 'Product'."); } 
@@ -1420,7 +1481,7 @@
                                 let updatedCount = 0; let addedCount = 0;
                                 newItems.forEach(newItem => {
                                     let key = newItem.code ? `code_${newItem.code}` : `attr_${newItem.brand}_${newItem.fullName}_${newItem.variant}_${newItem.condition}`;
-                                    if (invMap.has(key)) { const existingIndex = invMap.get(key); inventory[existingIndex].onHand = newItem.onHand; inventory[existingIndex].price = newItem.price; inventory[existingIndex].status = newItem.status; inventory[existingIndex].condition = newItem.condition; updatedCount++; } 
+                                    if (invMap.has(key)) { const existingIndex = invMap.get(key); inventory[existingIndex].onHand = newItem.onHand; inventory[existingIndex].price = newItem.price; inventory[existingIndex].status = newItem.status; inventory[existingIndex].condition = newItem.condition; inventory[existingIndex].periode = newItem.periode; updatedCount++; } 
                                     else { inventory.push(newItem); invMap.set(key, inventory.length - 1); addedCount++; }
                                 });
                                 try {
@@ -1440,6 +1501,10 @@
 
         function populateGlobalFilters() {
             const brands = ['all', ...new Set(inventory.map(i => i.brand))]; document.getElementById('globalBrandFilter').innerHTML = brands.map(b => `<option value="${b}">${b === 'all' ? 'Semua Brand' : b}</option>`).join('');
+            
+            const periodes = ['all', ...new Set(inventory.map(i => i.periode || 'Regular'))]; 
+            document.getElementById('globalPeriodeFilter').innerHTML = periodes.map(p => `<option value="${p}">${p === 'all' ? 'Semua Periode' : p}</option>`).join('');
+
             const cols = [...new Set(inventory.map(i => i.collection))].sort(); let colHtml = `<label class="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 font-bold transition-colors"><input type="checkbox" value="all" class="col-checkbox mr-3 rounded accent-indigo-600 w-4 h-4 cursor-pointer" onchange="handleInvColCheckbox(this)" checked> <span class="text-sm">Semua Koleksi</span></label>`;
             cols.forEach(c => { colHtml += `<label class="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm font-medium text-slate-700 transition-colors"><input type="checkbox" value="${c}" class="col-checkbox mr-3 rounded accent-indigo-600 w-4 h-4 cursor-pointer" onchange="handleInvColCheckbox(this)"> <span class="truncate">${c}</span></label>`; });
             const drop = document.getElementById('multiSelectDropdown'); if (drop) { drop.innerHTML = colHtml; updateColSelectText(); }
@@ -1457,10 +1522,19 @@
 
         function refreshInvApp() {
             updateInvFileNameUI();
-            const selectedBrand = document.getElementById('globalBrandFilter').value, searchTerm = document.getElementById('searchInput').value.toLowerCase(), selectedStatus = document.getElementById('tableStatusFilter').value, selectedCondition = document.getElementById('conditionFilter').value;
+            const selectedBrand = document.getElementById('globalBrandFilter').value;
+            const selectedPeriode = document.getElementById('globalPeriodeFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const selectedStatus = document.getElementById('tableStatusFilter').value;
+            const selectedCondition = document.getElementById('conditionFilter').value;
+
             let selectedCols = ['all']; const checkedBoxes = document.querySelectorAll('.col-checkbox:checked'); if(checkedBoxes.length > 0) { selectedCols = Array.from(checkedBoxes).map(cb => cb.value); }
             
-            let rawData = selectedBrand === 'all' ? inventory : inventory.filter(d => d.brand === selectedBrand);
+            let rawData = inventory.filter(d => 
+                (selectedBrand === 'all' || d.brand === selectedBrand) &&
+                (selectedPeriode === 'all' || (d.periode || 'Regular') === selectedPeriode)
+            );
+            
             const uniqueProductsMap = new Map();
             rawData.forEach(item => {
                 const key = `${item.brand}-${item.cleanName}-${item.condition || 'Normal'}`;
@@ -1585,7 +1659,10 @@
             const modal = document.getElementById('invVariantModal'); const tbody = document.getElementById('invVariantTableBody'); const title = document.getElementById('invVariantTitle');
             title.innerHTML = `${cleanName} <span class="text-xs font-normal text-slate-500 block mt-1"><i class="fas fa-tag mr-1"></i>${brand} | Kondisi: <span class="font-bold text-slate-600">${condition}</span></span>`;
 
-            const variants = inventory.filter(item => item.cleanName === cleanName && item.brand === brand && (item.condition || 'Normal') === condition);
+            const selectedPeriode = document.getElementById('globalPeriodeFilter').value;
+            let variants = inventory.filter(item => item.cleanName === cleanName && item.brand === brand && (item.condition || 'Normal') === condition);
+            if(selectedPeriode !== 'all') { variants = variants.filter(item => (item.periode || 'Regular') === selectedPeriode); }
+
             const varMap = new Map(); variants.forEach(v => { const vName = v.variant || 'All Size'; if (!varMap.has(vName)) { varMap.set(vName, { ...v, onHand: 0 }); } varMap.get(vName).onHand += v.onHand; });
             const sortedVariants = Array.from(varMap.values()).sort((a,b) => b.onHand - a.onHand);
 
@@ -1600,10 +1677,15 @@
         // ==========================================
         // LAUNCHING & MOVEMENT (FULL LOGIC)
         // ==========================================
+        
+        let launchingData = [];
+
         function initLaunchingApp() {
             const userDivisi = currentUser.divisi || '';
             const isSales = userDivisi === 'Sales' || currentUser.role === 'admin';
+            
             document.getElementById('launching-sales-input').classList.toggle('hidden', !isSales);
+            document.getElementById('launching-import-tools').classList.toggle('hidden', !isSales);
             
             db.collection('launching_clothes').orderBy('created_at', 'desc').onSnapshot(snapshot => {
                 launchingData = [];
@@ -1613,19 +1695,102 @@
             });
         }
 
+        // FUNGSI IMPORT EXCEL LAUNCHING KHUSUS SALES
+        function downloadTemplateLaunching() {
+            const templateData = [{
+                "Brand": "ZS",
+                "Periode": "Regular",
+                "Tahun Periode": "2026",
+                "Nama Baju": "Dress Ayana",
+                "Koleksi": "Raya Collection",
+                "Variant": "Maroon",
+                "Size": "S"
+            }];
+            const wb = XLSX.utils.book_new(), ws = XLSX.utils.json_to_sheet(templateData);
+            XLSX.utils.book_append_sheet(wb, ws, "Template Launching");
+            XLSX.writeFile(wb, "Template_Import_Launching.xlsx");
+        }
+
+        function handleLaunchingExcelUpload(input) {
+            const file = input.files[0]; if(!file) return;
+            const loader = document.getElementById('globalLoading'); 
+            document.getElementById('loadingText').innerText = "Mengimport Jadwal Launching..."; 
+            loader.classList.remove('hidden');
+            
+            setTimeout(() => {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const excelData = XLSX.utils.sheet_to_json(firstSheet);
+                        
+                        if(excelData.length === 0) { alert("Data kosong!"); return; }
+                        
+                        let addedCount = 0;
+                        const batch = db.batch();
+                        const timeNow = Date.now();
+                        
+                        for (let i = 0; i < excelData.length; i++) {
+                            const row = excelData[i];
+                            if (!row['Nama Baju'] || !row['Variant']) continue;
+                            
+                            const id = "LC-" + timeNow + "-" + i;
+                            const docRef = db.collection('launching_clothes').doc(id);
+                            
+                            batch.set(docRef, {
+                                id: id,
+                                brand: String(row['Brand'] || 'ZS').trim(),
+                                periode: String(row['Periode'] || 'Regular').trim(),
+                                tahun_periode: String(row['Tahun Periode'] || new Date().getFullYear()).trim(),
+                                nama: String(row['Nama Baju']).trim(),
+                                koleksi: String(row['Koleksi'] || '-').trim(),
+                                variant: String(row['Variant']).trim(),
+                                size: String(row['Size'] || 'ALL SIZE').trim(),
+                                kirim: '',
+                                marketing_desc: '',
+                                marketing_foto_cek: false,
+                                launching_date: '',
+                                launching_time: '',
+                                launching_sources: [],
+                                foto: 'https://via.placeholder.com/150?text=No+Photo',
+                                by: currentUser.username,
+                                created_at: timeNow + i
+                            });
+                            addedCount++;
+                        }
+                        
+                        if (addedCount > 0) {
+                            await batch.commit();
+                            alert(`Berhasil mengimport ${addedCount} data produk ke Jadwal Launching!`);
+                        } else {
+                            alert("Tidak ada data yang valid untuk diimport. Pastikan format sesuai template.");
+                        }
+                    } catch(err) {
+                        alert("Gagal membaca file: " + err.message);
+                    } finally {
+                        input.value = '';
+                        loader.classList.add('hidden');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }, 100);
+        }
+
         function submitBajuLaunching() {
-            const br = document.getElementById('l-brand').value, n = document.getElementById('l-nama').value, k = document.getElementById('l-koleksi').value, v = document.getElementById('l-variant').value, s = document.getElementById('l-size').value, f = document.getElementById('l-foto').files[0];
+            const br = document.getElementById('l-brand').value, p = document.getElementById('l-periode').value, t = document.getElementById('l-tahun').value, n = document.getElementById('l-nama').value, k = document.getElementById('l-koleksi').value, v = document.getElementById('l-variant').value, s = document.getElementById('l-size').value, f = document.getElementById('l-foto').files[0];
             if(!n || !k || !v || !s) return alert("Mohon lengkapi data teks produk!");
 
             const id = "LC-" + Date.now();
             const payload = {
-                id: id, brand: br, nama: n, koleksi: k, variant: v, size: s, 
+                id: id, brand: br, periode: p, tahun_periode: t, nama: n, koleksi: k, variant: v, size: s, 
                 kirim: '', marketing_desc: '', marketing_foto_cek: false,
                 launching_date: '', launching_time: '', launching_sources: [],
                 by: currentUser.username, created_at: Date.now()
             };
 
-            const resetForm = () => { ['l-nama','l-koleksi','l-variant','l-size','l-foto'].forEach(x => document.getElementById(x).value = ''); };
+            const resetForm = () => { ['l-nama','l-koleksi','l-variant','l-size','l-foto','l-tahun'].forEach(x => document.getElementById(x).value = ''); };
 
             if (f) {
                 const reader = new FileReader();
@@ -1674,6 +1839,43 @@
             db.collection('launching_clothes').doc(id).update(payload).then(() => { document.getElementById('salesLaunchModal').classList.add('hidden'); }).catch(e => alert(e.message));
         }
 
+        // FUNGSI EDIT FOTO DARI TABEL LAUNCHING
+        let currentEditPhotoId = null;
+
+        function triggerPhotoEdit(id) {
+            currentEditPhotoId = id;
+            document.getElementById('globalPhotoEditInput').click();
+        }
+
+        function handlePhotoEditUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !currentEditPhotoId) return;
+
+            const loader = document.getElementById('globalLoading');
+            document.getElementById('loadingText').innerText = "Mengupdate Foto di Cloud...";
+            loader.classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Photo = e.target.result;
+                
+                db.collection('launching_clothes').doc(currentEditPhotoId).update({
+                    foto: base64Photo,
+                    foto_updated_by: currentUser.username,
+                    foto_updated_at: Date.now()
+                }).then(() => {
+                    // Alert optional, biarkan diam agar natural karena realtime
+                }).catch((error) => {
+                    alert("Gagal memperbarui foto: " + error.message);
+                }).finally(() => {
+                    loader.classList.add('hidden');
+                    event.target.value = '';
+                    currentEditPhotoId = null;
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
         function toggleMarketingFoto(id, isChecked) { db.collection('launching_clothes').doc(id).update({ marketing_foto_cek: isChecked, marketing_foto_by: currentUser.username }); }
         function openMarketingModal(id, viewOnly = false) { const item = launchingData.find(x => x.id === id); document.getElementById('mkId').value = id; document.getElementById('mkDesc').value = item.marketing_desc || ''; document.getElementById('mkDesc').disabled = viewOnly; document.getElementById('mkSaveBtn').style.display = viewOnly ? 'none' : 'block'; document.getElementById('marketingModal').classList.remove('hidden'); }
         function saveMarketingDesc() { const id = document.getElementById('mkId').value; const desc = document.getElementById('mkDesc').value.trim(); db.collection('launching_clothes').doc(id).update({ marketing_desc: desc, marketing_desc_by: currentUser.username }).then(() => { document.getElementById('marketingModal').classList.add('hidden'); }); }
@@ -1716,21 +1918,49 @@
                 let uiM = `<div class="flex flex-col gap-2 items-center"><div class="flex items-center gap-2"><span class="text-[10px] font-bold text-slate-600">Foto Ready:</span> ${chkFoto}</div>${btnMateri}</div>`;
 
                 const canDelete = currentUser.role === 'admin' || currentUser.divisi === 'Sales';
+                const periodeLabel = c.periode === 'Ramadhan' ? `<span class="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded text-[8px] font-bold mt-1 ml-1">${c.periode} ${c.tahun_periode || ''}</span>` : `<span class="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[8px] font-bold mt-1 ml-1">Reguler</span>`;
 
-                return `<tr class="hover:bg-indigo-50/30 transition-colors"><td class="p-3 text-center"><img src="${c.foto}" onclick="document.getElementById('zoomImageSrc').src=this.src; document.getElementById('zoomModal').classList.remove('hidden')" class="w-12 h-12 object-cover rounded-xl shadow-sm cursor-zoom-in hover:scale-110 transition-transform bg-white"></td><td class="p-3"><span class="bg-slate-800 text-white px-2 py-1 rounded text-[9px] font-black">${c.brand}</span></td><td class="p-3"><div class="font-bold text-slate-700">${c.nama}</div><div class="text-[10px] text-slate-400 uppercase font-bold tracking-tight mt-0.5">${c.koleksi}</div></td><td class="p-3 text-[10px] text-slate-500">Var: <b>${c.variant}</b><br>Size: <b>${c.size}</b></td><td class="p-3 text-center align-middle">${uiL}</td><td class="p-3 text-center align-middle">${uiK}</td><td class="p-3 text-center align-middle">${uiM}</td><td class="p-3 text-center">${canDelete ? `<button onclick="if(confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) db.collection('launching_clothes').doc('${c.id}').delete()" class="text-rose-400 hover:text-rose-600 transition-colors bg-rose-50 hover:bg-rose-100 p-2 rounded-lg" title="Hapus Baju dari Jadwal"><i class="fas fa-trash-alt"></i></button>` : '-'}</td></tr>`;
+                return `
+                <tr class="hover:bg-indigo-50/30 transition-colors">
+                    <td class="p-3 text-center">
+                        <div class="flex flex-col items-center gap-1.5">
+                            <img src="${c.foto}" onclick="document.getElementById('zoomImageSrc').src=this.src; document.getElementById('zoomModal').classList.remove('hidden')" class="w-12 h-12 object-cover rounded-xl shadow-sm cursor-zoom-in hover:scale-110 transition-transform bg-white">
+                            ${isSales ? `<button onclick="triggerPhotoEdit('${c.id}')" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded text-[9px] font-bold transition-colors w-full max-w-[50px] flex items-center justify-center gap-1 shadow-sm"><i class="fas fa-camera"></i> Edit</button>` : ''}
+                        </div>
+                    </td>
+                    <td class="p-3"><span class="bg-slate-800 text-white px-2 py-1 rounded text-[9px] font-black">${c.brand}</span> ${periodeLabel}</td>
+                    <td class="p-3"><div class="font-bold text-slate-700">${c.nama}</div><div class="text-[10px] text-slate-400 uppercase font-bold tracking-tight mt-0.5">${c.koleksi}</div></td>
+                    <td class="p-3 text-[10px] text-slate-500">Var: <b>${c.variant}</b><br>Size: <b>${c.size}</b></td>
+                    <td class="p-3 text-center align-middle">${uiL}</td>
+                    <td class="p-3 text-center align-middle">${uiK}</td>
+                    <td class="p-3 text-center align-middle">${uiM}</td>
+                    <td class="p-3 text-center">${canDelete ? `<button onclick="if(confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) db.collection('launching_clothes').doc('${c.id}').delete()" class="text-rose-400 hover:text-rose-600 transition-colors bg-rose-50 hover:bg-rose-100 p-2 rounded-lg" title="Hapus Baju dari Jadwal"><i class="fas fa-trash-alt"></i></button>` : '-'}</td>
+                </tr>`;
             }).join('');
         }
 
         function exportLaunchingToExcel() {
             if (launchingData.length === 0) return alert("Database kosong!");
-            let csv = "Brand,Nama Baju,Koleksi,Variant,Size,Tgl Launching,Estimasi Kirim\n";
-            launchingData.forEach(c => csv += `"${c.brand}","${c.nama}","${c.koleksi}","${c.variant}","${c.size}","${c.launching_date || '-'}","${c.kirim || '-'}"\n`);
+            let csv = "Brand,Periode,Tahun,Nama Baju,Koleksi,Variant,Size,Tgl Launching,Estimasi Kirim\n";
+            launchingData.forEach(c => csv += `"${c.brand}","${c.periode||'Regular'}","${c.tahun_periode||'-'}","${c.nama}","${c.koleksi}","${c.variant}","${c.size}","${c.launching_date || '-'}","${c.kirim || '-'}"\n`);
             downloadCSV(csv, 'Laporan_Jadwal_Launching_ZSSHI');
         }
 
         function showBreakdown(nama, breakdownStrEncoded) {
             let data = JSON.parse(decodeURIComponent(breakdownStrEncoded));
-            let html = Object.entries(data).sort((a,b)=>b[1]-a[1]).map(([src, qty]) => `<div class="flex justify-between border-b border-slate-100 py-2 text-sm text-slate-600"><span class="font-bold"><i class="fas fa-store mr-2 text-slate-400"></i>${src}</span><span class="font-black text-emerald-600">${qty} pcs</span></div>`).join('');
+            
+            let html = '';
+            for (const [size, sources] of Object.entries(data)) {
+                html += `<div class="mb-4"><h4 class="font-bold text-indigo-600 mb-2 border-b border-indigo-100 pb-1 text-xs">Size: ${size}</h4>`;
+                let totalSize = 0;
+                let srcHtml = Object.entries(sources).sort((a,b)=>b[1]-a[1]).map(([src, qty]) => {
+                    totalSize += qty;
+                    return `<div class="flex justify-between py-1 text-xs text-slate-600 pl-2"><span class="font-medium"><i class="fas fa-store mr-2 text-slate-400"></i>${src}</span><span class="font-bold text-slate-800">${qty} pcs</span></div>`;
+                }).join('');
+                html += srcHtml;
+                html += `<div class="flex justify-between py-1 mt-1 text-xs text-indigo-800 bg-indigo-50 px-2 rounded font-black"><span>Total ${size}</span><span>${totalSize} pcs</span></div></div>`;
+            }
+            
             document.getElementById('breakdownTitle').innerText = `Detail Penjualan: ${nama}`;
             document.getElementById('breakdownContent').innerHTML = html || '<div class="py-4 text-center text-slate-500 italic text-sm">Belum ada penjualan</div>';
             document.getElementById('detailTerjualModal').classList.remove('hidden');
@@ -1746,16 +1976,54 @@
 
             filteredLaunch.forEach(launch => {
                 const baseName = simplifyName(launch.nama); if (!baseName) return;
-                let totalTerjual = 0; let sisaGudang = 0; let sourceBreakdown = {};
+                const isRamadhan = launch.periode === 'Ramadhan';
+                let totalTerjual = 0; let sisaGudang = 0; 
+                let sizeSourceBreakdown = {}; 
 
                 rawSalesData.forEach(sale => {
-                    const saleName = simplifyName(sale['Nama Baju']);
-                    if (saleName.includes(baseName) && String(sale.Brand).toUpperCase() === String(launch.brand).toUpperCase()) { let qty = parseInt(sale['Qty Terjual']) || 0; totalTerjual += qty; let src = sale.Source || 'Lainnya'; sourceBreakdown[src] = (sourceBreakdown[src] || 0) + qty; }
+                    let match = false;
+                    let detectedSize = 'ALL SIZE';
+                    
+                    if (isRamadhan) {
+                        const saleVariant = String(sale['Variant'] || '');
+                        const extName = simplifyName(extractRamadhanName(saleVariant));
+                        if (extName.includes(baseName)) {
+                            match = true;
+                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
+                        }
+                    } else {
+                        const saleName = simplifyName(sale['Nama Baju']);
+                        if (saleName.includes(baseName)) match = true;
+                    }
+
+                    if (match && String(sale.Brand).toUpperCase() === String(launch.brand).toUpperCase()) { 
+                        let qty = parseInt(sale['Qty Terjual']) || 0; 
+                        totalTerjual += qty; 
+                        let src = sale.Source || 'Lainnya'; 
+                        
+                        if (!sizeSourceBreakdown[detectedSize]) sizeSourceBreakdown[detectedSize] = {};
+                        sizeSourceBreakdown[detectedSize][src] = (sizeSourceBreakdown[detectedSize][src] || 0) + qty;
+                    }
                 });
 
                 inventory.forEach(inv => {
-                    const invName = simplifyName(inv.cleanName);
-                    if (invName.includes(baseName) && String(inv.brand).toUpperCase() === String(launch.brand).toUpperCase()) { sisaGudang += (parseInt(inv.onHand) || 0); }
+                    let match = false;
+                    if (isRamadhan) {
+                        const invVariant = String(inv.variant || '');
+                        const extName = simplifyName(extractRamadhanName(invVariant));
+                        const extCleanName = simplifyName(inv.cleanName);
+                        
+                        if (extName.includes(baseName) || extCleanName.includes(baseName)) {
+                            match = true;
+                        }
+                    } else {
+                        const invName = simplifyName(inv.cleanName);
+                        if (invName.includes(baseName)) match = true;
+                    }
+
+                    if (match && String(inv.brand).toUpperCase() === String(launch.brand).toUpperCase()) { 
+                        sisaGudang += (parseInt(inv.onHand) || 0); 
+                    }
                 });
 
                 let daysElapsedText = '<span class="text-[9px] text-slate-400 italic">Belum Diatur</span>'; let velocityText = '';
@@ -1785,7 +2053,7 @@
                     }
                 }
 
-                let breakdownEncoded = encodeURIComponent(JSON.stringify(sourceBreakdown));
+                let breakdownEncoded = encodeURIComponent(JSON.stringify(sizeSourceBreakdown));
                 let safeLaunchName = String(launch.nama).replace(/'/g, "\\'");
 
                 html += `<tr class="hover:bg-slate-50 transition-colors">
