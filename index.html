@@ -728,14 +728,30 @@
             });
         };
 
-        window.showStockDetail = function(name, normal, minor) {
+        window.showStockDetail = function(name, normal, minor, breakdownStr) {
+            let breakdownHtml = '';
+            if (breakdownStr) {
+                try {
+                    const breakdown = JSON.parse(decodeURIComponent(breakdownStr));
+                    breakdownHtml = '<div class="mt-4 text-left border-t border-slate-100 pt-3"><p class="text-[10px] font-extrabold text-slate-400 uppercase mb-2 tracking-widest">Detail per Variant (Normal | Minor):</p><div class="max-h-40 overflow-y-auto pr-2">';
+                    
+                    const sortedVariants = Object.entries(breakdown).sort((a,b) => a[0].localeCompare(b[0]));
+                    for (const [v, qt] of sortedVariants) {
+                        if (qt.normal > 0 || qt.minor > 0) {
+                           breakdownHtml += `<div class="flex justify-between items-center py-1.5 text-xs border-b border-slate-50 last:border-0"><span class="font-bold text-slate-700">${v}</span><div class="flex gap-1.5"><span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-black border border-emerald-100" title="Normal">${qt.normal}</span><span class="text-rose-600 bg-rose-50 px-2 py-0.5 rounded font-black border border-rose-100" title="Minor">${qt.minor}</span></div></div>`;
+                        }
+                    }
+                    breakdownHtml += '</div></div>';
+                } catch(e) {}
+            }
+            
             Swal.fire({
-                title: `Detail Stok ${name}`,
-                html: `• Kondisi Normal: <b>${normal} pcs</b><br>• Kondisi Minor: <b>${minor} pcs</b>`,
+                title: `Stok: ${name}`,
+                html: `<div class="mb-2 text-sm text-slate-600">Total Normal: <b class="text-emerald-600">${normal} pcs</b><br>Total Minor: <b class="text-rose-600">${minor} pcs</b></div>${breakdownHtml}`,
                 icon: 'info',
                 confirmButtonText: 'Tutup',
-                confirmButtonColor: '#f59e0b',
-                customClass: { popup: 'rounded-3xl shadow-2xl border border-slate-100', title: 'text-slate-800 font-bold' }
+                confirmButtonColor: '#6366f1',
+                customClass: { popup: 'rounded-3xl shadow-2xl border border-slate-100', title: 'text-slate-800 font-black text-lg', htmlContainer: 'm-0 p-0' }
             });
         };
 
@@ -2055,7 +2071,7 @@
             }
 
             let html = ''; 
-            let filteredLaunch = launchingData.filter(c => (c.nama||'').toLowerCase().includes(search) || (c.koleksi||'').toLowerCase().includes(search));
+            let filteredLaunch = launchingData.filter(c => (c.nama||'').toLowerCase().includes(search) || (c.koleksi||'').toLowerCase().includes(search) || (c.variant||'').toLowerCase().includes(search));
             
             if (filterPeriode !== 'ALL') {
                 filteredLaunch = filteredLaunch.filter(c => (c.periode || 'Reguler') === filterPeriode);
@@ -2068,16 +2084,23 @@
             }
 
             filteredLaunch.forEach(launch => {
-                const baseName = simplifyName(launch.nama); 
-                if (!baseName) return;
+                const baseName1 = simplifyName(launch.nama); 
+                const baseName2 = simplifyName(extractRamadhanName(launch.variant)); 
                 
-                // Cek apakah periode adalah Ramadhan ATAU Lebaran
+                if (!baseName1 && !baseName2) return;
+                
                 const isSpecialPeriod = String(launch.periode).toLowerCase().includes('ramadhan') || String(launch.periode).toLowerCase().includes('lebaran');
                 
                 let totalTerjual = 0; 
                 let sisaNormal = 0;
                 let sisaMinor = 0;
                 let sizeSourceBreakdown = {}; 
+                let variantBreakdown = {}; // NEW: Untuk nyimpen sisa varian
+
+                const checkMatch = (a, b) => {
+                    if (!a || !b || a.length < 4 || b.length < 4) return false;
+                    return a.includes(b) || b.includes(a);
+                };
 
                 rawSalesData.forEach(sale => {
                     let match = false;
@@ -2085,22 +2108,24 @@
                     
                     const saleName = simplifyName(sale['Nama Baju']);
                     const saleVariant = String(sale['Variant'] || '');
-                    const extVariantName = simplifyName(extractRamadhanName(saleVariant)); // extractRamadhanName membuang ukuran seperti S, M, L
+                    const extVariantName = simplifyName(extractRamadhanName(saleVariant));
                     
-                    const checkMatch = (a, b) => {
-                        if (!a || !b || a.length < 4 || b.length < 4) return false;
-                        return a.includes(b) || b.includes(a);
-                    };
-
-                    // 1. Pengecekan Reguler (Dari Nama Baju)
-                    if (checkMatch(saleName, baseName)) {
-                        match = true;
-                        detectedSize = extractSize(saleVariant) || 'ALL SIZE';
-                    } 
-                    // 2. JIKA LEBARAN / RAMADHAN, Cek juga dari Variant (Cocok untuk tipe Sarimbit)
-                    else if (isSpecialPeriod && checkMatch(extVariantName, baseName)) {
-                        match = true;
-                        detectedSize = extractSize(saleVariant) || 'ALL SIZE'; 
+                    if (isSpecialPeriod) {
+                        if (checkMatch(extVariantName, baseName1) || (baseName2 && checkMatch(extVariantName, baseName2))) {
+                            match = true;
+                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
+                        } else if (checkMatch(saleName, baseName1) || (baseName2 && checkMatch(saleName, baseName2))) {
+                            match = true;
+                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
+                        }
+                    } else {
+                        if (checkMatch(saleName, baseName1) || (baseName2 && checkMatch(saleName, baseName2))) {
+                            match = true;
+                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
+                        } else if (checkMatch(extVariantName, baseName1) || (baseName2 && checkMatch(extVariantName, baseName2))) {
+                            match = true;
+                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
+                        }
                     }
 
                     if (match && String(sale.Brand).toUpperCase() === String(launch.brand).toUpperCase()) { 
@@ -2115,18 +2140,27 @@
                 inventory.forEach(inv => {
                     let match = false;
                     const invName = simplifyName(inv.cleanName);
-                    const checkMatch = (a, b) => {
-                        if (!a || !b || a.length < 4 || b.length < 4) return false;
-                        return a.includes(b) || b.includes(a);
-                    };
+                    const invVar = simplifyName(extractRamadhanName(inv.variant));
                     
-                    if (checkMatch(invName, baseName)) {
+                    if (checkMatch(invName, baseName1) || (baseName2 && checkMatch(invName, baseName2))) {
+                        match = true;
+                    } else if (checkMatch(invVar, baseName1) || (baseName2 && checkMatch(invVar, baseName2))) {
                         match = true;
                     }
 
                     if (match && String(inv.brand).toUpperCase() === String(launch.brand).toUpperCase()) { 
-                        if (inv.condition === 'Minor') sisaMinor += (parseInt(inv.onHand) || 0);
-                        else sisaNormal += (parseInt(inv.onHand) || 0);
+                        let qty = parseInt(inv.onHand) || 0;
+                        let vName = (inv.variant && inv.variant !== '-') ? String(inv.variant).trim() : 'All Size';
+                        
+                        if (!variantBreakdown[vName]) variantBreakdown[vName] = { normal: 0, minor: 0 };
+                        
+                        if (inv.condition === 'Minor') {
+                            sisaMinor += qty;
+                            variantBreakdown[vName].minor += qty;
+                        } else {
+                            sisaNormal += qty;
+                            variantBreakdown[vName].normal += qty;
+                        }
                     }
                 });
                 
@@ -2155,9 +2189,16 @@
                 let statusBadge = totalProduksi === 0 ? '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-[10px] font-bold uppercase">No Data</span>' : (diffDays > 30 && strPercentage < 80 ? '<span class="bg-rose-100 text-rose-700 px-2 py-1 rounded-md text-[10px] font-black uppercase border border-rose-200 shadow-sm">Slow Selling</span>' : '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[10px] font-black uppercase border border-emerald-200 shadow-sm">Fast Selling</span>');
 
                 let breakdownEncoded = encodeURIComponent(JSON.stringify(sizeSourceBreakdown));
-                let safeName = String(launch.nama).replace(/'/g, "\'");
+                let variantBreakdownEncoded = encodeURIComponent(JSON.stringify(variantBreakdown)); // NEW
+
+                let displayNama = launch.nama;
+                if (isSpecialPeriod && baseName2 && baseName2.length > 3) {
+                    displayNama = launch.variant;
+                }
+                let safeName = String(displayNama).replace(/'/g, "\'");
                 
-                let sisaGudangHtml = `<div class="font-black text-amber-600 cursor-pointer hover:underline" onclick="showStockDetail('${safeName}', ${sisaNormal}, ${sisaMinor})" title="Klik untuk rincian Normal vs Minor">${sisaTotal.toLocaleString('id-ID')} <span class="text-[9px] font-normal text-amber-400">pcs</span></div>`;
+                // NEW: Update onclick for Sisa Gudang to pass variantBreakdownEncoded
+                let sisaGudangHtml = `<div class="font-black text-amber-600 cursor-pointer hover:underline" onclick="showStockDetail('${safeName}', ${sisaNormal}, ${sisaMinor}, '${variantBreakdownEncoded}')" title="Klik untuk rincian varian">${sisaTotal.toLocaleString('id-ID')} <span class="text-[9px] font-normal text-amber-400">pcs</span></div>`;
 
                 html += `<tr class="hover:bg-slate-50 transition-colors">
                     <td class="p-4 cursor-pointer group" onclick="showBreakdown('${safeName}', '${breakdownEncoded}')">
@@ -2165,7 +2206,8 @@
                             <img src="${launch.foto}" class="w-10 h-10 object-cover rounded-lg shadow-sm border border-slate-200">
                             <div>
                                 <div class="font-bold text-slate-700 text-xs">${launch.nama}</div>
-                                <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">${launch.brand} - ${launch.koleksi}</div>
+                                <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">${launch.brand} - ${launch.koleksi} <span class="text-indigo-500 ml-0.5 font-black border border-indigo-100 bg-indigo-50 px-1 py-0.5 rounded">${launch.periode || 'Reguler'}</span></div>
+                                ${isSpecialPeriod && baseName2 && baseName2.length > 3 ? `<div class="text-[9px] text-indigo-500 font-bold mt-1"><i class="fas fa-tag mr-1"></i>${launch.variant}</div>` : ''}
                             </div>
                         </div>
                     </td>
