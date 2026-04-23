@@ -438,10 +438,14 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
+                        <select id="filterBrandMovement" onchange="renderMovementApp()" class="pl-4 pr-8 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm bg-white font-bold text-slate-600 cursor-pointer">
+                            <option value="ALL">Semua Brand</option>
+                        </select>
+                        <select id="filterKoleksiMovement" onchange="renderMovementApp()" class="pl-4 pr-8 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm bg-white font-bold text-slate-600 cursor-pointer max-w-[150px]">
+                            <option value="ALL">Semua Koleksi</option>
+                        </select>
                         <select id="filterPeriodeMovement" onchange="renderMovementApp()" class="pl-4 pr-8 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm bg-white font-bold text-slate-600 cursor-pointer">
                             <option value="ALL">Semua Periode</option>
-                            <option value="Reguler">Reguler</option>
-                            <option value="Ramadhan">Ramadhan</option>
                         </select>
                         <input type="text" id="searchMovement" onkeyup="renderMovementApp()" placeholder="Cari Nama Baju..." class="pl-4 pr-10 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
                     </div>
@@ -1716,6 +1720,38 @@
         
         let launchingData = [];
 
+        function updateMovementDropdowns() {
+            const dpPeriode = document.getElementById('filterPeriodeMovement');
+            if (dpPeriode) {
+                const cur = dpPeriode.value;
+                const uniques = [...new Set(launchingData.map(item => item.periode || 'Reguler'))];
+                let html = '<option value="ALL">Semua Periode</option>';
+                uniques.forEach(p => { if(p.trim()) html += `<option value="${p.trim()}">${p.trim()}</option>`; });
+                dpPeriode.innerHTML = html;
+                if (uniques.includes(cur)) dpPeriode.value = cur; else dpPeriode.value = 'ALL';
+            }
+
+            const dpBrand = document.getElementById('filterBrandMovement');
+            if (dpBrand) {
+                const cur = dpBrand.value;
+                const uniques = [...new Set(launchingData.map(item => item.brand || 'No Brand'))];
+                let html = '<option value="ALL">Semua Brand</option>';
+                uniques.forEach(b => { if(b.trim()) html += `<option value="${b.trim()}">${b.trim()}</option>`; });
+                dpBrand.innerHTML = html;
+                if (uniques.includes(cur)) dpBrand.value = cur; else dpBrand.value = 'ALL';
+            }
+
+            const dpKoleksi = document.getElementById('filterKoleksiMovement');
+            if (dpKoleksi) {
+                const cur = dpKoleksi.value;
+                const uniques = [...new Set(launchingData.map(item => item.koleksi || 'Others'))];
+                let html = '<option value="ALL">Semua Koleksi</option>';
+                uniques.forEach(k => { if(k.trim()) html += `<option value="${k.trim()}">${k.trim()}</option>`; });
+                dpKoleksi.innerHTML = html;
+                if (uniques.includes(cur)) dpKoleksi.value = cur; else dpKoleksi.value = 'ALL';
+            }
+        }
+
         function initLaunchingApp() {
             const userDivisi = currentUser.divisi || '';
             const isSales = userDivisi === 'Sales' || currentUser.role === 'admin';
@@ -1727,6 +1763,7 @@
                 launchingData = [];
                 snapshot.forEach(doc => launchingData.push(doc.data()));
                 renderBajuLaunching();
+                updateMovementDropdowns(); // Update dropdown dinamis berdasarkan data
                 if(!document.getElementById('app-movement').classList.contains('hidden')) { renderMovementApp(); }
             });
         }
@@ -2005,10 +2042,12 @@
         function simplifyName(name) { return String(name||'').toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(); }
 
                         
-                                function renderMovementApp() {
+                        function renderMovementApp() {
             const tbody = document.getElementById('movementTableBody'); 
             const search = document.getElementById('searchMovement').value.toLowerCase();
             const filterPeriode = document.getElementById('filterPeriodeMovement') ? document.getElementById('filterPeriodeMovement').value : 'ALL';
+            const filterBrand = document.getElementById('filterBrandMovement') ? document.getElementById('filterBrandMovement').value : 'ALL';
+            const filterKoleksi = document.getElementById('filterKoleksiMovement') ? document.getElementById('filterKoleksiMovement').value : 'ALL';
             
             if (launchingData.length === 0) { 
                 tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-slate-400 font-medium italic">Belum ada data di jadwal launching...</td></tr>`; 
@@ -2016,18 +2055,23 @@
             }
 
             let html = ''; 
-            let filteredLaunch = launchingData.filter(c => (c.nama||'').toLowerCase().includes(search) || (c.koleksi||'').toLowerCase().includes(search) || (c.variant||'').toLowerCase().includes(search));
+            let filteredLaunch = launchingData.filter(c => (c.nama||'').toLowerCase().includes(search) || (c.koleksi||'').toLowerCase().includes(search));
             
             if (filterPeriode !== 'ALL') {
                 filteredLaunch = filteredLaunch.filter(c => (c.periode || 'Reguler') === filterPeriode);
             }
+            if (filterBrand !== 'ALL') {
+                filteredLaunch = filteredLaunch.filter(c => (c.brand || 'No Brand') === filterBrand);
+            }
+            if (filterKoleksi !== 'ALL') {
+                filteredLaunch = filteredLaunch.filter(c => (c.koleksi || 'Others') === filterKoleksi);
+            }
 
             filteredLaunch.forEach(launch => {
-                const baseName1 = simplifyName(launch.nama); 
-                const baseName2 = simplifyName(extractRamadhanName(launch.variant)); 
+                const baseName = simplifyName(launch.nama); 
+                if (!baseName) return;
                 
-                if (!baseName1 && !baseName2) return;
-                
+                // Cek apakah periode adalah Ramadhan ATAU Lebaran
                 const isSpecialPeriod = String(launch.periode).toLowerCase().includes('ramadhan') || String(launch.periode).toLowerCase().includes('lebaran');
                 
                 let totalTerjual = 0; 
@@ -2035,38 +2079,28 @@
                 let sisaMinor = 0;
                 let sizeSourceBreakdown = {}; 
 
-                const checkMatch = (a, b) => {
-                    if (!a || !b || a.length < 4 || b.length < 4) return false;
-                    return a.includes(b) || b.includes(a);
-                };
-
                 rawSalesData.forEach(sale => {
                     let match = false;
                     let detectedSize = 'ALL SIZE';
                     
                     const saleName = simplifyName(sale['Nama Baju']);
                     const saleVariant = String(sale['Variant'] || '');
-                    const extVariantName = simplifyName(extractRamadhanName(saleVariant));
+                    const extVariantName = simplifyName(extractRamadhanName(saleVariant)); // extractRamadhanName membuang ukuran seperti S, M, L
                     
-                    if (isSpecialPeriod) {
-                        // Jika Ramadhan/Lebaran, Prioritaskan cek Variant Sales dengan Nama Baju / Variant Launching
-                        if (checkMatch(extVariantName, baseName1) || (baseName2 && checkMatch(extVariantName, baseName2))) {
-                            match = true;
-                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
-                        } else if (checkMatch(saleName, baseName1) || (baseName2 && checkMatch(saleName, baseName2))) {
-                            // Fallback cek Nama Baju Sales
-                            match = true;
-                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
-                        }
-                    } else {
-                        // Reguler
-                        if (checkMatch(saleName, baseName1) || (baseName2 && checkMatch(saleName, baseName2))) {
-                            match = true;
-                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
-                        } else if (checkMatch(extVariantName, baseName1) || (baseName2 && checkMatch(extVariantName, baseName2))) {
-                            match = true;
-                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
-                        }
+                    const checkMatch = (a, b) => {
+                        if (!a || !b || a.length < 4 || b.length < 4) return false;
+                        return a.includes(b) || b.includes(a);
+                    };
+
+                    // 1. Pengecekan Reguler (Dari Nama Baju)
+                    if (checkMatch(saleName, baseName)) {
+                        match = true;
+                        detectedSize = extractSize(saleVariant) || 'ALL SIZE';
+                    } 
+                    // 2. JIKA LEBARAN / RAMADHAN, Cek juga dari Variant (Cocok untuk tipe Sarimbit)
+                    else if (isSpecialPeriod && checkMatch(extVariantName, baseName)) {
+                        match = true;
+                        detectedSize = extractSize(saleVariant) || 'ALL SIZE'; 
                     }
 
                     if (match && String(sale.Brand).toUpperCase() === String(launch.brand).toUpperCase()) { 
@@ -2081,11 +2115,12 @@
                 inventory.forEach(inv => {
                     let match = false;
                     const invName = simplifyName(inv.cleanName);
-                    const invVar = simplifyName(extractRamadhanName(inv.variant));
+                    const checkMatch = (a, b) => {
+                        if (!a || !b || a.length < 4 || b.length < 4) return false;
+                        return a.includes(b) || b.includes(a);
+                    };
                     
-                    if (checkMatch(invName, baseName1) || (baseName2 && checkMatch(invName, baseName2))) {
-                        match = true;
-                    } else if (checkMatch(invVar, baseName1) || (baseName2 && checkMatch(invVar, baseName2))) {
+                    if (checkMatch(invName, baseName)) {
                         match = true;
                     }
 
@@ -2120,12 +2155,7 @@
                 let statusBadge = totalProduksi === 0 ? '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-[10px] font-bold uppercase">No Data</span>' : (diffDays > 30 && strPercentage < 80 ? '<span class="bg-rose-100 text-rose-700 px-2 py-1 rounded-md text-[10px] font-black uppercase border border-rose-200 shadow-sm">Slow Selling</span>' : '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[10px] font-black uppercase border border-emerald-200 shadow-sm">Fast Selling</span>');
 
                 let breakdownEncoded = encodeURIComponent(JSON.stringify(sizeSourceBreakdown));
-                let displayNama = launch.nama;
-                if (isSpecialPeriod && baseName2 && baseName2.length > 3) {
-                    // Jika di Launching nama bajunya ada di variant
-                    displayNama = launch.variant;
-                }
-                let safeName = String(displayNama).replace(/'/g, "\'");
+                let safeName = String(launch.nama).replace(/'/g, "\'");
                 
                 let sisaGudangHtml = `<div class="font-black text-amber-600 cursor-pointer hover:underline" onclick="showStockDetail('${safeName}', ${sisaNormal}, ${sisaMinor})" title="Klik untuk rincian Normal vs Minor">${sisaTotal.toLocaleString('id-ID')} <span class="text-[9px] font-normal text-amber-400">pcs</span></div>`;
 
@@ -2136,7 +2166,6 @@
                             <div>
                                 <div class="font-bold text-slate-700 text-xs">${launch.nama}</div>
                                 <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">${launch.brand} - ${launch.koleksi}</div>
-                                ${isSpecialPeriod && baseName2 && baseName2.length > 3 ? `<div class="text-[9px] text-indigo-500 font-bold mt-1"><i class="fas fa-tag mr-1"></i>${launch.variant}</div>` : ''}
                             </div>
                         </div>
                     </td>
