@@ -2070,101 +2070,212 @@
                 return; 
             }
 
-            let html = ''; 
-            let filteredLaunch = launchingData.filter(c => (c.nama||'').toLowerCase().includes(search) || (c.koleksi||'').toLowerCase().includes(search) || (c.variant||'').toLowerCase().includes(search));
-            
-            if (filterPeriode !== 'ALL') {
-                filteredLaunch = filteredLaunch.filter(c => (c.periode || 'Reguler') === filterPeriode);
-            }
-            if (filterBrand !== 'ALL') {
-                filteredLaunch = filteredLaunch.filter(c => (c.brand || 'No Brand') === filterBrand);
-            }
-            if (filterKoleksi !== 'ALL') {
-                filteredLaunch = filteredLaunch.filter(c => (c.koleksi || 'Others') === filterKoleksi);
-            }
+            let launchStats = {};
+            launchingData.forEach(l => {
+                launchStats[l.id] = { terjual: 0, sisaNormal: 0, sisaMinor: 0, sources: {}, variants: {}, detailedSales: [] };
+            });
 
-            filteredLaunch.forEach(launch => {
-                const baseName1 = simplifyName(launch.nama); 
-                const baseName2 = simplifyName(extractRamadhanName(launch.variant)); 
-                
-                if (!baseName1 && !baseName2) return;
-                
-                const isSpecialPeriod = String(launch.periode).toLowerCase().includes('ramadhan') || String(launch.periode).toLowerCase().includes('lebaran');
-                
-                let totalTerjual = 0; 
-                let sisaNormal = 0;
-                let sisaMinor = 0;
-                let sizeSourceBreakdown = {}; 
-                let variantBreakdown = {}; // NEW: Untuk nyimpen sisa varian
+            const cleanStr = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-                const checkMatch = (a, b) => {
-                    if (!a || !b || a.length < 4 || b.length < 4) return false;
-                    return a.includes(b) || b.includes(a);
-                };
+            // 1. ITERASI SALES DATA
+            rawSalesData.forEach(sale => {
+                const sNameStr = String(sale['Nama Baju'] || '').toLowerCase();
+                const sVarStr = String(sale['Variant'] || '').toLowerCase();
+                const sKoleksiStr = String(sale['Koleksi'] || '').toLowerCase();
+                
+                const sNameClean = cleanStr(sNameStr);
+                const sVarClean = cleanStr(sVarStr);
+                const sKoleksiClean = cleanStr(sKoleksiStr);
+                
+                const sBrand = String(sale.Brand || '').toUpperCase();
+                const sQty = parseInt(sale['Qty Terjual']) || 0;
+                const sSource = sale.Source || 'Lainnya';
+                const sSize = extractSize(sale['Variant']) || 'ALL SIZE';
+                
+                const isSarimbitSale = sNameStr.includes('sarimbit');
 
-                rawSalesData.forEach(sale => {
-                    let match = false;
-                    let detectedSize = 'ALL SIZE';
+                let bestMatchId = null;
+                let maxScore = -1;
+
+                launchingData.forEach(launch => {
+                    if (String(launch.brand).toUpperCase() !== sBrand) return;
                     
-                    const saleName = simplifyName(sale['Nama Baju']);
-                    const saleVariant = String(sale['Variant'] || '');
-                    const extVariantName = simplifyName(extractRamadhanName(saleVariant));
+                    const lNameClean = cleanStr(launch.nama);
+                    const lKoleksiClean = cleanStr(launch.koleksi);
+                    const lPeriode = String(launch.periode).toLowerCase();
+                    const isLaunchRamadhan = lPeriode.includes('ramadhan') || lPeriode.includes('lebaran');
                     
-                    if (isSpecialPeriod) {
-                        if (checkMatch(extVariantName, baseName1) || (baseName2 && checkMatch(extVariantName, baseName2))) {
-                            match = true;
-                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
-                        } else if (checkMatch(saleName, baseName1) || (baseName2 && checkMatch(saleName, baseName2))) {
-                            match = true;
-                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
+                    let isMatch = false;
+                    let currentScore = 0;
+
+                    if (isLaunchRamadhan) {
+                        if (isSarimbitSale) {
+                            const sVarTanpaUkuran = cleanStr(extractRamadhanName(sVarStr)); 
+                            if (sVarTanpaUkuran.includes(lNameClean) || lNameClean.includes(sVarTanpaUkuran)) {
+                                isMatch = true;
+                                currentScore = lNameClean.length + 500;
+                            }
                         }
                     } else {
-                        if (checkMatch(saleName, baseName1) || (baseName2 && checkMatch(saleName, baseName2))) {
-                            match = true;
-                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
-                        } else if (checkMatch(extVariantName, baseName1) || (baseName2 && checkMatch(extVariantName, baseName2))) {
-                            match = true;
-                            detectedSize = extractSize(saleVariant) || 'ALL SIZE';
+                        if (!isSarimbitSale) {
+                            if (sNameClean.includes(lNameClean) || lNameClean.includes(sNameClean)) {
+                                isMatch = true;
+                                currentScore = lNameClean.length + 100;
+                            }
                         }
                     }
 
-                    if (match && String(sale.Brand).toUpperCase() === String(launch.brand).toUpperCase()) { 
-                        let qty = parseInt(sale['Qty Terjual']) || 0; 
-                        totalTerjual += qty; 
-                        let src = sale.Source || 'Lainnya'; 
-                        if (!sizeSourceBreakdown[detectedSize]) sizeSourceBreakdown[detectedSize] = {};
-                        sizeSourceBreakdown[detectedSize][src] = (sizeSourceBreakdown[detectedSize][src] || 0) + qty;
-                    }
-                });
-
-                inventory.forEach(inv => {
-                    let match = false;
-                    const invName = simplifyName(inv.cleanName);
-                    const invVar = simplifyName(extractRamadhanName(inv.variant));
+                    // CEK VARIAN WARNA
+                    let lVarRaw = String(launch.variant || '').toLowerCase().trim();
+                    let isSizeOnly = /^[smlxlx\s,]+$/.test(lVarRaw) || lVarRaw === '-' || lVarRaw === '';
                     
-                    if (checkMatch(invName, baseName1) || (baseName2 && checkMatch(invName, baseName2))) {
-                        match = true;
-                    } else if (checkMatch(invVar, baseName1) || (baseName2 && checkMatch(invVar, baseName2))) {
-                        match = true;
-                    }
-
-                    if (match && String(inv.brand).toUpperCase() === String(launch.brand).toUpperCase()) { 
-                        let qty = parseInt(inv.onHand) || 0;
-                        let vName = (inv.variant && inv.variant !== '-') ? String(inv.variant).trim() : 'All Size';
-                        
-                        if (!variantBreakdown[vName]) variantBreakdown[vName] = { normal: 0, minor: 0 };
-                        
-                        if (inv.condition === 'Minor') {
-                            sisaMinor += qty;
-                            variantBreakdown[vName].minor += qty;
+                    if (isMatch && !isSizeOnly) {
+                        const lVarClean = cleanStr(lVarRaw);
+                        if (sNameClean.includes(lVarClean) || sVarClean.includes(lVarClean)) {
+                            currentScore += 100; 
                         } else {
-                            sisaNormal += qty;
-                            variantBreakdown[vName].normal += qty;
+                            currentScore -= 50;  
                         }
                     }
+
+                    // CEK KOLEKSI
+                    if (isMatch && lKoleksiClean && sKoleksiClean) {
+                        if (sKoleksiClean.includes(lKoleksiClean) || lKoleksiClean.includes(sKoleksiClean)) {
+                            currentScore += 200;
+                        } else {
+                            currentScore -= 500; // Penalti berat jika beda koleksi
+                        }
+                    }
+
+                    if (isMatch && currentScore > maxScore) {
+                        maxScore = currentScore;
+                        bestMatchId = launch.id;
+                    }
                 });
+
+                if (bestMatchId) {
+                    launchStats[bestMatchId].terjual += sQty;
+                    if (!launchStats[bestMatchId].sources[sSize]) launchStats[bestMatchId].sources[sSize] = {};
+                    launchStats[bestMatchId].sources[sSize][sSource] = (launchStats[bestMatchId].sources[sSize][sSource] || 0) + sQty;
+                    
+                    launchStats[bestMatchId].detailedSales.push({
+                        "Tanggal": sale.Tanggal || "-",
+                        "Periode": sale.Periode || "-",
+                        "Nama Customer": sale['Nama Customer'] || "-",
+                        "Source": sSource,
+                        "Nama Baju (Sales)": sale['Nama Baju'] || "-",
+                        "Variant (Sales)": sale['Variant'] || "-",
+                        "Qty": sQty,
+                        "Revenue (Rp)": sale.Revenue || 0
+                    });
+                }
+            });
+
+            // -------------------------------------------------------------
+            // B. ITERASI INVENTORY DATA
+            // -------------------------------------------------------------
+            inventory.forEach(inv => {
+                const invNameStr = String(inv.cleanName || '').toLowerCase();
+                const invVarStr = String(inv.variant || '').toLowerCase();
+                const invKoleksiStr = String(inv.collection || '').toLowerCase();
                 
-                let sisaTotal = sisaNormal + sisaMinor;
+                const invNameClean = cleanStr(invNameStr);
+                const invVarClean = cleanStr(invVarStr);
+                const invKoleksiClean = cleanStr(invKoleksiStr);
+
+                const invBrand = String(inv.brand || '').toUpperCase();
+                const invQty = parseInt(inv.onHand) || 0;
+                const invCondition = inv.condition || 'Normal';
+
+                const isSarimbitInv = invNameStr.includes('sarimbit');
+
+                let bestMatchId = null;
+                let maxScore = -1;
+
+                launchingData.forEach(launch => {
+                    if (String(launch.brand).toUpperCase() !== invBrand) return;
+                    
+                    const lNameClean = cleanStr(launch.nama);
+                    const lKoleksiClean = cleanStr(launch.koleksi);
+                    const lPeriode = String(launch.periode).toLowerCase();
+                    const isLaunchRamadhan = lPeriode.includes('ramadhan') || lPeriode.includes('lebaran');
+                    
+                    let isMatch = false;
+                    let currentScore = 0;
+
+                    if (isLaunchRamadhan) {
+                        if (isSarimbitInv) {
+                            const invVarTanpaUkuran = cleanStr(extractRamadhanName(invVarStr)); 
+                            if (invVarTanpaUkuran.includes(lNameClean) || lNameClean.includes(invVarTanpaUkuran)) {
+                                isMatch = true;
+                                currentScore = lNameClean.length + 500;
+                            }
+                        }
+                    } else {
+                        if (!isSarimbitInv) {
+                            if (invNameClean.includes(lNameClean) || lNameClean.includes(invNameClean)) {
+                                isMatch = true;
+                                currentScore = lNameClean.length + 100;
+                            }
+                        }
+                    }
+
+                    // CEK VARIAN WARNA
+                    let lVarRaw = String(launch.variant || '').toLowerCase().trim();
+                    let isSizeOnly = /^[smlxlx\s,]+$/.test(lVarRaw) || lVarRaw === '-' || lVarRaw === '';
+                    
+                    if (isMatch && !isSizeOnly) {
+                        const lVarClean = cleanStr(lVarRaw);
+                        if (invNameClean.includes(lVarClean) || invVarClean.includes(lVarClean)) {
+                            currentScore += 100; 
+                        } else {
+                            currentScore -= 50; 
+                        }
+                    }
+                    
+                    // CEK KOLEKSI
+                    if (isMatch && lKoleksiClean && invKoleksiClean) {
+                        if (invKoleksiClean.includes(lKoleksiClean) || lKoleksiClean.includes(invKoleksiClean)) {
+                            currentScore += 200; 
+                        } else {
+                            currentScore -= 500; 
+                        }
+                    }
+
+                    if (isMatch && currentScore > maxScore) {
+                        maxScore = currentScore;
+                        bestMatchId = launch.id;
+                    }
+                });
+
+                if (bestMatchId) {
+                    let vName = (inv.variant && inv.variant !== '-') ? String(inv.variant).trim() : 'All Size';
+                    if (!launchStats[bestMatchId].variants[vName]) launchStats[bestMatchId].variants[vName] = { normal: 0, minor: 0 };
+                    
+                    if (invCondition === 'Minor') {
+                        launchStats[bestMatchId].sisaMinor += invQty;
+                        launchStats[bestMatchId].variants[vName].minor += invQty;
+                    } else {
+                        launchStats[bestMatchId].sisaNormal += invQty;
+                        launchStats[bestMatchId].variants[vName].normal += invQty;
+                    }
+                }
+            });
+
+            let filteredLaunch = launchingData.filter(c => (c.nama||'').toLowerCase().includes(search) || (c.koleksi||'').toLowerCase().includes(search) || (c.variant||'').toLowerCase().includes(search));
+            
+            if (filterPeriode !== 'ALL') filteredLaunch = filteredLaunch.filter(c => (c.periode || 'Reguler') === filterPeriode);
+            if (filterBrand !== 'ALL') filteredLaunch = filteredLaunch.filter(c => (c.brand || 'No Brand') === filterBrand);
+            if (filterKoleksi !== 'ALL') filteredLaunch = filteredLaunch.filter(c => (c.koleksi || 'Others') === filterKoleksi);
+
+            let html = '';
+            filteredLaunch.forEach(launch => {
+                const stats = launchStats[launch.id];
+                const totalTerjual = stats.terjual;
+                const sisaNormal = stats.sisaNormal;
+                const sisaMinor = stats.sisaMinor;
+                const sisaTotal = sisaNormal + sisaMinor;
+
                 let daysElapsedText = '<span class="text-[9px] text-slate-400 italic">Belum Diatur</span>'; 
                 let velocityText = '';
                 let diffDays = -1;
@@ -2188,17 +2299,18 @@
                 let strPercentage = totalProduksi > 0 ? (totalTerjual / totalProduksi) * 100 : 0;
                 let statusBadge = totalProduksi === 0 ? '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-[10px] font-bold uppercase">No Data</span>' : (diffDays > 30 && strPercentage < 80 ? '<span class="bg-rose-100 text-rose-700 px-2 py-1 rounded-md text-[10px] font-black uppercase border border-rose-200 shadow-sm">Slow Selling</span>' : '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[10px] font-black uppercase border border-emerald-200 shadow-sm">Fast Selling</span>');
 
-                let breakdownEncoded = encodeURIComponent(JSON.stringify(sizeSourceBreakdown));
-                let variantBreakdownEncoded = encodeURIComponent(JSON.stringify(variantBreakdown)); // NEW
-
-                let displayNama = launch.nama;
-                if (isSpecialPeriod && baseName2 && baseName2.length > 3) {
-                    displayNama = launch.variant;
-                }
-                let safeName = String(displayNama).replace(/'/g, "\'");
+                let breakdownEncoded = encodeURIComponent(JSON.stringify(stats.sources));
+                let variantBreakdownEncoded = encodeURIComponent(JSON.stringify(stats.variants));
+                let detailedSalesEncoded = encodeURIComponent(JSON.stringify(stats.detailedSales));
                 
-                // NEW: Update onclick for Sisa Gudang to pass variantBreakdownEncoded
+                let safeName = String(launch.nama).replace(/'/g, "\\'");
+                
                 let sisaGudangHtml = `<div class="font-black text-amber-600 cursor-pointer hover:underline" onclick="showStockDetail('${safeName}', ${sisaNormal}, ${sisaMinor}, '${variantBreakdownEncoded}')" title="Klik untuk rincian varian">${sisaTotal.toLocaleString('id-ID')} <span class="text-[9px] font-normal text-amber-400">pcs</span></div>`;
+
+                let isSpecialPeriod = String(launch.periode).toLowerCase().includes('ramadhan') || String(launch.periode).toLowerCase().includes('lebaran');
+                let displayVar = (launch.variant && launch.variant.length > 2 && launch.variant !== '-') ? `<div class="text-[9px] text-indigo-500 font-bold mt-1"><i class="fas fa-tag mr-1"></i>${launch.variant}</div>` : '';
+
+                let downloadBtn = `<button onclick="exportDetailPenjualan('${safeName}', '${detailedSalesEncoded}')" class="mt-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-emerald-200 transition-colors w-full shadow-sm"><i class="fas fa-file-excel mr-1"></i> Detail Excel</button>`;
 
                 html += `<tr class="hover:bg-slate-50 transition-colors">
                     <td class="p-4 cursor-pointer group" onclick="showBreakdown('${safeName}', '${breakdownEncoded}')">
@@ -2207,7 +2319,7 @@
                             <div>
                                 <div class="font-bold text-slate-700 text-xs">${launch.nama}</div>
                                 <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">${launch.brand} - ${launch.koleksi} <span class="text-indigo-500 ml-0.5 font-black border border-indigo-100 bg-indigo-50 px-1 py-0.5 rounded">${launch.periode || 'Reguler'}</span></div>
-                                ${isSpecialPeriod && baseName2 && baseName2.length > 3 ? `<div class="text-[9px] text-indigo-500 font-bold mt-1"><i class="fas fa-tag mr-1"></i>${launch.variant}</div>` : ''}
+                                ${displayVar}
                             </div>
                         </div>
                     </td>
@@ -2215,11 +2327,12 @@
                     <td class="p-4 text-right"><div class="font-black text-emerald-600 text-sm cursor-pointer hover:underline" onclick="showBreakdown('${safeName}', '${breakdownEncoded}')">${totalTerjual.toLocaleString('id-ID')} <span class="text-[9px] font-normal text-emerald-400">pcs</span></div>${velocityText}</td>
                     <td class="p-4 text-right">${sisaGudangHtml}</td>
                     <td class="p-4 text-center"><div class="flex flex-col items-center gap-1"><span class="font-black text-indigo-600 text-sm">${strPercentage.toFixed(1)}%</span><div class="w-full bg-slate-100 rounded-full h-1.5 max-w-[80px]"><div class="bg-indigo-500 h-1.5 rounded-full" style="width: ${strPercentage}%"></div></div></div></td>
-                    <td class="p-4 text-center">${statusBadge}</td>
+                    <td class="p-4 text-center"><div class="flex flex-col gap-1 items-center">${statusBadge} ${downloadBtn}</div></td>
                 </tr>`;
             });
             tbody.innerHTML = html;
         }
-    </script>
+
+        </script>
 </body>
 </html>
