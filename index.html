@@ -63,12 +63,10 @@
         .delay-100 { animation-delay: 0.1s; }
         .delay-200 { animation-delay: 0.2s; }
         .delay-300 { animation-delay: 0.3s; }
-
         .delay-400 { animation-delay: 0.4s; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
-
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="h-screen w-full flex bg-slate-50 relative">
@@ -570,7 +568,19 @@
                 <button onclick="closeSalesModal()" class="p-2 bg-white rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition-colors shadow-sm"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-5 md:p-6 overflow-y-auto flex-1">
-                <div id="salesModalControls" class="mb-6 hidden"><label id="salesModalDropdownLabel" class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 block ml-1">Pilih:</label><select id="salesModalDropdownSelect" onchange="renderSalesModalTable(currentSalesModalMode)" class="custom-select w-full md:w-1/2 bg-white border border-slate-200 py-3 px-4 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 shadow-sm"></select></div>
+                <div id="salesModalControls" class="mb-6 hidden flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <label id="salesModalDropdownLabel" class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 block ml-1">Pilih:</label>
+                    <select id="salesModalDropdownSelect" onchange="renderSalesModalTable(currentSalesModalMode)" class="custom-select w-full bg-white border border-slate-200 py-3 px-4 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 shadow-sm"></select>
+                </div>
+                <div id="salesModalSearchContainer" class="flex-1 hidden">
+                    <label class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 block ml-1">Cari Nama Baju:</label>
+                    <div class="relative">
+                        <input type="text" id="salesModalSearchInput" onkeyup="renderSalesModalTable(currentSalesModalMode)" placeholder="Ketik nama baju..." class="w-full bg-white border border-slate-200 py-3 pl-10 pr-4 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 shadow-sm outline-none">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    </div>
+                </div>
+            </div>
                 <div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm">
                     <table class="w-full text-left text-sm whitespace-nowrap">
                         <thead class="bg-slate-50 text-slate-400 font-extrabold uppercase text-[10px] tracking-widest"><tr><th class="px-6 py-4" id="salesModalThName">Nama Produk</th><th class="px-6 py-4 text-right">Qty Terjual</th><th class="px-6 py-4 text-right">Total Revenue</th></tr></thead>
@@ -1481,10 +1491,12 @@
         function openSalesModal(type, specificClicked = null) {
             currentSalesModalMode = type; document.getElementById('salesDetailModal').classList.remove('hidden');
             const title = document.getElementById('salesModalTitle'), controls = document.getElementById('salesModalControls'), select = document.getElementById('salesModalDropdownSelect'), label = document.getElementById('salesModalDropdownLabel');
+            const searchContainer = document.getElementById('salesModalSearchContainer');
+            if(searchContainer) searchContainer.classList.add('hidden');
 
             if (type === 'qty') { title.innerText = 'Top 10 Baju (Berdasarkan Qty Terjual)'; controls.classList.add('hidden'); renderSalesModalTable('qty'); }
             else if (type === 'rev') { title.innerText = 'Top 10 Baju (Berdasarkan Total Revenue)'; controls.classList.add('hidden'); renderSalesModalTable('rev'); }
-            else if (type === 'collection') { title.innerText = 'Detail Penjualan Varian per Koleksi'; controls.classList.remove('hidden'); label.innerText = 'Pilih Koleksi:'; const availableCols = [...new Set(currentSalesFilteredData.map(r => String(r.Koleksi || 'N/A').trim()))].sort(); select.innerHTML = availableCols.map(c => `<option value="${c}">${c}</option>`).join(''); if (specificClicked && availableCols.includes(specificClicked)) select.value = specificClicked; renderSalesModalTable('collection'); }
+            else if (type === 'collection') { title.innerText = 'Detail Penjualan Varian per Koleksi'; controls.classList.remove('hidden'); if(searchContainer){ searchContainer.classList.remove('hidden'); document.getElementById('salesModalSearchInput').value = ''; } label.innerText = 'Pilih Koleksi:'; const availableCols = [...new Set(currentSalesFilteredData.map(r => String(r.Koleksi || 'N/A').trim()))].sort(); select.innerHTML = availableCols.map(c => `<option value="${c}">${c}</option>`).join(''); if (specificClicked && availableCols.includes(specificClicked)) select.value = specificClicked; renderSalesModalTable('collection'); }
             else if (type === 'source') { title.innerText = 'Detail Produk per Channel Sales'; controls.classList.remove('hidden'); label.innerText = 'Pilih Channel Sales:'; const availableSources = [...new Set(currentSalesFilteredData.map(r => String(r.Source || 'N/A').trim()))].sort(); select.innerHTML = availableSources.map(c => `<option value="${c}">${c}</option>`).join(''); if (specificClicked && availableSources.includes(specificClicked)) select.value = specificClicked; renderSalesModalTable('source'); }
             else if (type === 'customer') { title.innerText = 'Detail Penjualan Mitra City'; controls.classList.remove('hidden'); label.innerText = 'Pilih Mitra / City:'; const availableCustomers = [...new Set(currentSalesFilteredData.map(r => String(r['Nama Customer'] || 'N/A').trim()))].sort(); select.innerHTML = '<option value="ALL">Semua Mitra / City</option>' + availableCustomers.map(c => `<option value="${c}">${c}</option>`).join(''); if (specificClicked && availableCustomers.includes(specificClicked)) select.value = specificClicked; else select.value = 'ALL'; renderSalesModalTable('customer'); }
         }
@@ -1499,8 +1511,23 @@
                 dataArr = Object.entries(agg).map(([name, data]) => ({name, q: data.q, r: data.r}));
                 if (type === 'qty') dataArr.sort((a, b) => b.q - a.q); else dataArr.sort((a, b) => b.r - a.r); dataArr = dataArr.slice(0, 10);
             } else if (type === 'collection') {
-                thName.innerText = 'Nama Produk - Varian'; const selectedVal = document.getElementById('salesModalDropdownSelect').value; let agg = {};
-                currentSalesFilteredData.filter(r => (r.Koleksi || 'N/A') === selectedVal).forEach(r => { let varianLabel = r['Variant'] && r['Variant'] !== '-' ? r['Variant'] : 'All Size'; let nama = r['Nama Baju']; if (r.Periode && r.Periode.toLowerCase().includes('ramadhan')) nama = extractRamadhanName(r.Variant); let n = `${nama} <span class="text-slate-400 font-medium">(${varianLabel})</span>`; if (!agg[n]) agg[n] = {q: 0, r: 0}; agg[n].q += r['Qty Terjual']; agg[n].r += r.Revenue; });
+                thName.innerText = 'Nama Produk - Varian'; 
+                const selectedVal = document.getElementById('salesModalDropdownSelect').value; 
+                const searchInput = document.getElementById('salesModalSearchInput');
+                const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
+                let agg = {};
+                currentSalesFilteredData.filter(r => (r.Koleksi || 'N/A') === selectedVal).forEach(r => { 
+                    let varianLabel = r['Variant'] && r['Variant'] !== '-' ? r['Variant'] : 'All Size'; 
+                    let nama = r['Nama Baju']; 
+                    if (r.Periode && r.Periode.toLowerCase().includes('ramadhan')) nama = extractRamadhanName(r.Variant); 
+                    
+                    if (searchVal && !nama.toLowerCase().includes(searchVal)) return;
+
+                    let n = `${nama} <span class="text-slate-400 font-medium">(${varianLabel})</span>`; 
+                    if (!agg[n]) agg[n] = {q: 0, r: 0}; 
+                    agg[n].q += r['Qty Terjual']; 
+                    agg[n].r += r.Revenue; 
+                });
                 dataArr = Object.entries(agg).map(([name, data]) => ({name, q: data.q, r: data.r})); dataArr.sort((a, b) => b.q - a.q); 
             } else if (type === 'source') {
                 thName.innerText = 'Nama Baju'; const selectedVal = document.getElementById('salesModalDropdownSelect').value; let agg = {};
@@ -1835,94 +1862,94 @@
         }
 
         function handleLaunchingExcelUpload(input) {
-            const file = input.files[0]; if(!file) return;
-            const loader = document.getElementById('globalLoading'); 
-            document.getElementById('loadingText').innerText = "Mengimport Jadwal Launching..."; 
-            loader.classList.remove('hidden');
-            
-            setTimeout(() => {
-                const reader = new FileReader();
-                reader.onload = async function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, {type: 'array'});
-                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const excelData = XLSX.utils.sheet_to_json(firstSheet);
+        const file = input.files[0]; if(!file) return;
+        const loader = document.getElementById('globalLoading'); 
+        document.getElementById('loadingText').innerText = "Mengimport Jadwal Launching..."; 
+        loader.classList.remove('hidden');
+        
+        setTimeout(() => {
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const excelData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    if(excelData.length === 0) { alert("Data kosong!"); return; }
+                    
+                    let addedCount = 0;
+                    let updatedCount = 0;
+                    const batch = db.batch();
+                    const timeNow = Date.now();
+                    
+                    for (let i = 0; i < excelData.length; i++) {
+                        const row = excelData[i];
+                        if (!row['Nama Baju'] || !row['Variant']) continue;
                         
-                        if(excelData.length === 0) { alert("Data kosong!"); return; }
+                        const rBrand = String(row['Brand'] || 'ZS').trim();
+                        const rNama = String(row['Nama Baju']).trim();
+                        const rVariant = String(row['Variant']).trim();
                         
-                        let addedCount = 0;
-                        let updatedCount = 0;
-                        const batch = db.batch();
-                        const timeNow = Date.now();
+                        const existingItem = launchingData.find(item => 
+                            String(item.nama).toLowerCase() === rNama.toLowerCase() &&
+                            String(item.variant).toLowerCase() === rVariant.toLowerCase() &&
+                            String(item.brand).toLowerCase() === rBrand.toLowerCase()
+                        );
                         
-                        for (let i = 0; i < excelData.length; i++) {
-                            const row = excelData[i];
-                            if (!row['Nama Baju'] || !row['Variant']) continue;
-                            
-                            const rBrand = String(row['Brand'] || 'ZS').trim();
-                            const rNama = String(row['Nama Baju']).trim();
-                            const rVariant = String(row['Variant']).trim();
-                            
-                            const existingItem = launchingData.find(item => 
-                                String(item.nama).toLowerCase() === rNama.toLowerCase() &&
-                                String(item.variant).toLowerCase() === rVariant.toLowerCase() &&
-                                String(item.brand).toLowerCase() === rBrand.toLowerCase()
-                            );
-                            
-                            if (existingItem) {
-                                const docRef = db.collection('launching_clothes').doc(existingItem.id);
-                                batch.update(docRef, {
-                                    periode: String(row['Periode'] || existingItem.periode).trim(),
-                                    tahun_periode: String(row['Tahun Periode'] || existingItem.tahun_periode).trim(),
-                                    koleksi: String(row['Koleksi'] || existingItem.koleksi).trim(),
-                                    size: String(row['Size'] || existingItem.size).trim(),
-                                    updated_by: currentUser.username,
-                                    updated_at: timeNow + i
-                                });
-                                updatedCount++;
-                            } else {
-                                const id = "LC-" + timeNow + "-" + i;
-                                const docRef = db.collection('launching_clothes').doc(id);
-                                batch.set(docRef, {
-                                    id: id,
-                                    brand: rBrand,
-                                    periode: String(row['Periode'] || 'Regular').trim(),
-                                    tahun_periode: String(row['Tahun Periode'] || new Date().getFullYear()).trim(),
-                                    nama: rNama,
-                                    koleksi: String(row['Koleksi'] || '-').trim(),
-                                    variant: rVariant,
-                                    size: String(row['Size'] || 'ALL SIZE').trim(),
-                                    kirim: '',
-                                    marketing_desc: '',
-                                    marketing_foto_cek: false,
-                                    launching_date: '',
-                                    launching_time: '',
-                                    launching_sources: [],
-                                    foto: 'https://via.placeholder.com/150?text=No+Photo',
-                                    by: currentUser.username,
-                                    created_at: timeNow + i
-                                });
-                                addedCount++;
-                            }
-                        }
-                        
-                        if (addedCount > 0 || updatedCount > 0) {
-                            await batch.commit();
-                            alert(`Import Berhasil!\n\n- ${addedCount} Baju Baru Ditambahkan\n- ${updatedCount} Baju Lama Diperbarui`);
+                        if (existingItem) {
+                            const docRef = db.collection('launching_clothes').doc(existingItem.id);
+                            batch.update(docRef, {
+                                periode: String(row['Periode'] || existingItem.periode).trim(),
+                                tahun_periode: String(row['Tahun Periode'] || existingItem.tahun_periode).trim(),
+                                koleksi: String(row['Koleksi'] || existingItem.koleksi).trim(),
+                                size: String(row['Size'] || existingItem.size).trim(),
+                                updated_by: currentUser.username,
+                                updated_at: timeNow + i
+                            });
+                            updatedCount++;
                         } else {
-                            alert("Tidak ada data yang valid untuk diimport. Pastikan format sesuai template.");
+                            const id = "LC-" + timeNow + "-" + i;
+                            const docRef = db.collection('launching_clothes').doc(id);
+                            batch.set(docRef, {
+                                id: id,
+                                brand: rBrand,
+                                periode: String(row['Periode'] || 'Regular').trim(),
+                                tahun_periode: String(row['Tahun Periode'] || new Date().getFullYear()).trim(),
+                                nama: rNama,
+                                koleksi: String(row['Koleksi'] || '-').trim(),
+                                variant: rVariant,
+                                size: String(row['Size'] || 'ALL SIZE').trim(),
+                                kirim: '',
+                                marketing_desc: '',
+                                marketing_foto_cek: false,
+                                launching_date: '',
+                                launching_time: '',
+                                launching_sources: [],
+                                foto: 'https://via.placeholder.com/150?text=No+Photo',
+                                by: currentUser.username,
+                                created_at: timeNow + i
+                            });
+                            addedCount++;
                         }
-                    } catch(err) {
-                        alert("Gagal membaca file: " + err.message);
-                    } finally {
-                        input.value = '';
-                        loader.classList.add('hidden');
                     }
-                };
-                reader.readAsArrayBuffer(file);
-            }, 100);
-        }
+                    
+                    if (addedCount > 0 || updatedCount > 0) {
+                        await batch.commit();
+                        alert(`Import Berhasil!\n\n- ${addedCount} Baju Baru Ditambahkan\n- ${updatedCount} Baju Lama Diperbarui`);
+                    } else {
+                        alert("Tidak ada data yang valid untuk diimport. Pastikan format sesuai template.");
+                    }
+                } catch(err) {
+                    alert("Gagal membaca file: " + err.message);
+                } finally {
+                    input.value = '';
+                    loader.classList.add('hidden');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }, 100);
+    }
 
         
         function openEditLaunchingModal(id) {
